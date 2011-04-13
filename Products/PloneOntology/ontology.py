@@ -308,9 +308,6 @@ class Ontology(BaseBTreeFolder):
         importer.importProperties()
         error_string = importer.importClasses()
 
-        #don't abort transaction if map generation fails
-        transaction.commit()
-
         # Update keyword graph images
         ct = getToolByName(self, 'portal_classification')
         try:
