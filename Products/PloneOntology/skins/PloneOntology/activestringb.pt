@@ -18,12 +18,10 @@
 	       value=""
 	       id="SearchKWB"
 	       size="30"
-	       tabindex="#"
                onfocus="loadHandler(this)"
                onkeypress="activeStringStart(this)"
 	       tal:attributes="value python: here.getSearchKWB();
-	                       size widget/size;
-	                       tabindex tabindex/next;"
+	                       size widget/size;"
 	       />
            <input type="submit" name="form.button.search5" value="Search" i18n:attributes="value"/>
 	    <tal:block tal:condition="python: request.get('SearchKWB','')">

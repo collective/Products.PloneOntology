@@ -40,7 +40,6 @@
 	    value=""
 	    id="kw_search"
 	    size="30"
-	    tabindex="#"
             onfocus="loadHandler(this);"
             onkeypress="activeStringStart(this)"
 	    />

@@ -1,6 +1,6 @@
-from Products.CMFPlone.LargePloneFolder import LargePloneFolder
 from Products.Archetypes.atapi import BaseBTreeFolderSchema, BaseBTreeFolder, registerType
 from AccessControl.SecurityInfo import ClassSecurityInfo
+from config import PROJECTNAME
 
 class ProposalArchive(BaseBTreeFolder):
     """Archive of accepted keyword proposals.
@@ -17,4 +17,4 @@ class ProposalArchive(BaseBTreeFolder):
                     'mode':'wd',
                     },)
 
-registerType(ProposalArchive)
+registerType(ProposalArchive, PROJECTNAME)

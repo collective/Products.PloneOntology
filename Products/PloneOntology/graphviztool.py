@@ -1,28 +1,31 @@
-from Products.CMFCore.utils import UniqueObject 
-from Products.CMFPlone.PloneFolder import PloneFolder
+import Products.CMFCore.utils
 from Globals import InitializeClass, PersistentMapping
 from Products.CMFCore.utils import getToolByName
-from Products.CMFCore.ActionProviderBase import ActionProviderBase
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from config import PROJECTNAME
 import zLOG
 import popen2
 import os
+import OFS.PropertyManager
+import OFS.SimpleItem
+import Products.CMFCore.ActionProviderBase
 
 from warnings import warn
 from config import *
 
-class GraphVizTool(UniqueObject, PloneFolder,
-                         ActionProviderBase): 
+class GraphVizTool(Products.CMFCore.utils.UniqueObject,
+                   OFS.PropertyManager.PropertyManager,
+                   OFS.SimpleItem.SimpleItem,
+                   Products.CMFCore.ActionProviderBase.ActionProviderBase):
     """A tool to provide graph rendering.
 
     Based on the GraphViz layout programs (http://www.graphviz.org)
     """
 
-    id = 'graphviz_tool' 
+    id = 'graphviz_tool'
     meta_type= 'GraphViz Tool'
 
-    plone_tool = 1 
+    plone_tool = 1
 
     security = ClassSecurityInfo()
     security.declareObjectPublic()

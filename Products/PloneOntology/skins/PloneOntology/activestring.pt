@@ -18,14 +18,12 @@
 	       value=""
 	       id=""
 	       size="30"
-	       tabindex="#"
                onfocus="loadHandler(this)"
                onkeypress="activeStringStart(this)"
 	       tal:attributes="name fieldName;
 	                       id fieldName;
                  	       value value;
-	                       size widget/size;
-	                       tabindex tabindex/next;"
+	                       size widget/size;"
 	       />
 
 	<div tal:attributes="id string:activeresult-${fieldName}">

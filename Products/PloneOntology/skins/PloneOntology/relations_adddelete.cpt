@@ -1,6 +1,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
       lang="en"
       metal:use-macro="here/main_template/macros/master"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
       i18n:domain="Ontology">
 
 <body>
@@ -10,7 +13,7 @@
                    vocabulary here/relations_adddelete_vocab;
                    all_fields python:[];">
 
-    <h1 i18n:translate="">Add and Delete Keywordrelations for <span tal:content="here/title_or_id" i18n:name="keyword_relation" /></h1>
+    <h1 i18n:translate="">Add and delete keyword relations for <span tal:content="here/title_or_id" i18n:name="keyword_relation" /></h1>
     <a href=""
        class="link-parent"
        tal:attributes="href string:${here/absolute_url}/relations_form"
@@ -21,7 +24,7 @@
     <form action="."
           method="post"
           tal:attributes="action string:${here/absolute_url}/${template/id}">
-      <label i18n:translate="Ontology_label_deselect_to_delete">Deselect Keywordrelations to Delete:</label>
+      <label i18n:translate="Ontology_label_deselect_to_delete">Deselect keyword relations to delete:</label>
       <fieldset>
         <tal:repeat repeat="entry vocabulary">
           <div class="field"
@@ -33,32 +36,31 @@
                    tal:attributes="for field_id"
                    tal:content="entry/title">
                    Ruleset title
-	    </label>
+            </label>
 
             <div tal:content="error">Validation error output</div>
 
             <select multiple="multiple"
                     tal:attributes="name string:${field_id}:list;
-                                    id field_id;
-                                    tabindex tabindex/next">
+                                    id field_id">
               <tal:repeat repeat="item entry/tuples">
                 <option selected tal:define="brain python:item[0]"
                         tal:attributes="value brain/UID"
                         tal:content="python:'%r at %s' % (brain.Title or brain.id, brain.getPath())">
                         Target Title
                 </option>
-	      </tal:repeat>
-            </select>	
+              </tal:repeat>
+            </select>   
           </div>
-	</tal:repeat>      
+        </tal:repeat>      
         <input class="context"
                type="submit"
                name="form.button.Delete"
                value="Delete"
                i18n:attributes="value" />
       </fieldset>
-	
-      <label i18n:translate="Ontology_label_add_keywordrelation">Add a Keywordrelation:</label>
+
+      <label i18n:translate="Ontology_label_add_keywordrelation">Add a keyword relation:</label>
 
       <fieldset><br />
         <select size="1" name="rel">
@@ -66,15 +68,15 @@
             <option tal:attributes="value python:item.Title()"
                     tal:content="python:item.Title()">
                     Target Title
-	    </option>
+            </option>
           </tal:repeat>
         </select>
-	<select size="1" name="dest">
-          <tal:repeat repeat="item python: here.portal_catalog.searchResults(portal_type='Keyword')">
-            <option tal:attributes="value python:item.getObject().getName()"
-                    tal:content="python:item.getObject().getName()">
+        <select size="1" name="dest">
+          <tal:repeat repeat="item here/ontology_getallkeywords">
+            <option tal:attributes="value item/name"
+                    tal:content="item/name">
                     Target Title
-	    </option>
+            </option>
           </tal:repeat>
         </select>
  

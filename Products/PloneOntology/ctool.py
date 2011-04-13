@@ -1,14 +1,10 @@
 from Products.CMFCore.utils import getToolByName, UniqueObject
-from Products.CMFCore.ActionProviderBase import ActionProviderBase
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from AccessControl import getSecurityManager, Unauthorized
-from Acquisition import aq_base, aq_inner, aq_parent
 from OFS.SimpleItem import SimpleItem
 from Globals import InitializeClass, PersistentMapping
 
 from keywordgraph import KeywordGraph
-from keyword import Keyword
-from ontology import Ontology
 from utils import generateUniqueId
 from config import *
 import owl
@@ -18,14 +14,13 @@ from Products.Relations.processor import process
 from Products.Relations.exception import ValidationException
 from zExceptions import NotFound
 
-import zExceptions, zLOG
+import zLOG
 import difflib
 
 from types import *
 
 import os.path, sys, os, glob, re
 
-from warnings import warn
 
 def _unifyRawResults(results):
     """unify result list and add scores for unique objects.
@@ -192,9 +187,7 @@ def findFonts(paths = None):
 ###
 ###END TTFQuery
 
-class ClassificationTool(UniqueObject,
-                         SimpleItem,
-                         ActionProviderBase):
+class ClassificationTool(UniqueObject, SimpleItem):
     """A tool to handle content syndication with keywords.
     """
 
@@ -815,13 +808,23 @@ class ClassificationTool(UniqueObject,
             NotFound            : There is no relation 'name' in current ontology.
             ValidationException : 'name' is empty.
         """
+        if not hasattr(self, '_v_relcache'):
+            self._v_relcache = {}
+
+        result = self._v_relcache.get(name)
+        if result is not None:
+            return result
+
         catalog = getToolByName(self, 'portal_catalog')
 
         if not name:
             raise ValidationException, "Empty relation name."
 
         try:
-            return catalog.searchResults(portal_type='Ruleset', Title=name)[0].getObject()
+            result = catalog.searchResults(portal_type='Ruleset', Title=name,
+                                         Language='all')[0].getObject()
+            self._v_relcache[name] = result
+            return result
         except IndexError:
             raise NotFound, "Relation '%s' not found in current ontology" % name
 
@@ -1289,15 +1292,16 @@ class ClassificationTool(UniqueObject,
         storage = self.getStorage()
         catalog = getToolByName(self, 'portal_catalog')
 
-        kws=[kw_res.getObject() for kw_res in catalog.searchResults(portal_type='Keyword')]
+        kws = [kw_res.getObject() for kw_res in catalog.searchResults(portal_type='Keyword')]
 
         dot = KeywordGraph(self.getGVFont(), self.getRelFont(), self.getFocusNodeShape(), self.getFocusNodeColor(), self.getFocusNodeFontColor(), self.getFocusNodeFontSize(), self.getFirstNodeShape(), self.getFirstNodeColor(), self.getFirstNodeFontColor(), self.getFirstNodeFontSize(), self.getSecondNodeShape(), self.getSecondNodeColor(), self.getSecondNodeFontColor(), self.getSecondNodeFontSize(), self.getEdgeShape(), self.getEdgeColor(), self.getEdgeFontColor(), self.getEdgeFontSize())
-        
-        dot.graphHeader(kws[0])
+
+        if kws:
+            dot.graphHeader(kws[0])
 
         for node in kws:
             dot.firstLevelNode(node)
-            rels = node.getRelations() 
+            rels = node.getRelations()
             for rel in rels:
                   obs = node.getReferences(rel)
                   try:

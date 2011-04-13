@@ -1,7 +1,10 @@
 from Products.CMFCore.utils import getToolByName
 from AccessControl import ClassSecurityInfo
 from Products.Archetypes.atapi import *
-from Products.CMFCore import CMFCorePermissions
+try:
+    from Products.CMFCore import CMFCorePermissions
+except ImportError:
+    from Products.CMFCore import permissions as CMFCorePermissions
 from Products.Archetypes.Widget import LinesWidget
 from Products.Archetypes.Schema import MetadataSchema
 from widget import *

@@ -1,6 +1,5 @@
 from Globals import package_home
-from Products.CMFCore import CMFCorePermissions
-from Products.CMFCore.CMFCorePermissions import AddPortalContent
+from Products.CMFCore import permissions as CMFCorePermissions
 
 
 view_permission = CMFCorePermissions.ManagePortal
@@ -8,7 +7,7 @@ view_permission = CMFCorePermissions.ManagePortal
 PROJECTNAME = 'PloneOntology'
 GLOBALS = globals()
 SKINS_DIR = 'skins'
-ADD_CONTENT_PERMISSION = AddPortalContent
+ADD_CONTENT_PERMISSION = CMFCorePermissions.AddPortalContent
 
 # Dependency products
 # format is (productname, URL)

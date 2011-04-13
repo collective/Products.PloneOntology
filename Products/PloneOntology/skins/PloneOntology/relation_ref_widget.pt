@@ -61,7 +61,7 @@
         <div metal:fill-slot="widget_body"
              tal:define="multiVal field/multiValued;
                          vocab python:field.Vocabulary(here);
-                         fieldName python:fieldName+':list';
+                         fieldName python:fieldName;
                          uids python:same_type(value, []) and value or [value];
                          vlen python:len(vocab);">
 
@@ -73,15 +73,12 @@
                  />
            <ul>     
             <tal:item repeat="item vocab">
-              <tal:block tal:define="item_tabindex tabindex/next;
-                                   item_id string:${fieldName}_${item_tabindex};
-                                   no_ref python: value is None and item == ''">
+              <tal:block tal:define="item_id string:${fieldName}_${repeat/item/index};
+                                     no_ref python: value is None and item == ''">
              <tal:block condition="python:test((item in uids) or no_ref)">
                 <li><input class="noborder"
-                       tabindex=""
                        type="hidden"
                        tal:attributes="name fieldName;
-                                       tabindex item_tabindex;
                                        value item;
                                        id item_id;"
                        />

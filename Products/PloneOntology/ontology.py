@@ -1,11 +1,10 @@
-from Products.CMFCore import CMFCorePermissions
+from cStringIO import StringIO
+
 from Products.CMFCore.utils import getToolByName
 from AccessControl.SecurityInfo import ClassSecurityInfo
-from Globals import InitializeClass
 from Products.Archetypes.atapi import *
-from cStringIO import StringIO
-from xml.sax.saxutils import escape, unescape
-import re
+
+from config import PROJECTNAME
 
 import zExceptions, zLOG
 try:
@@ -13,8 +12,6 @@ try:
 except ImportError:
     # for Zope 2.7
     from Products.CMFCore.utils import transaction
-
-from Products.Relations.exception import ValidationException
 
 from owl import OWLExporter, OWLImporter
 
@@ -328,4 +325,4 @@ class Ontology(BaseBTreeFolder):
 
         return error_string
 
-registerType(Ontology)
+registerType(Ontology, PROJECTNAME)

@@ -10,9 +10,9 @@
 ##
 
 try:
-        msg = context.updateKwMap(levels=2)
+    msg = context.updateKwMap(levels=2)
 except:
-        pass # ignore NotFound exception for silent operation without graphviz
+    msg = '' # ignore NotFound exception for silent operation without graphviz
     #    return state.set(portal_status_message='Error: keyword graphs could not be updated.')
 
 if msg:

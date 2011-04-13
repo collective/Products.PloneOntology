@@ -12,8 +12,11 @@
     <metal:fill fill-slot="main">
     <metal:main_macro define-macro="main"
         tal:define="mapGraphic  here/getKwMapGraphic;
-                    description here/getKwDescription">
-    <metal:use_header use-macro="here/base/macros/header"/>
+                    description here/getKwDescription;
+                    header here/base/macros/header|nothing">
+      <tal:condition tal:condition="nocall:header">
+        <metal:use_header use-macro="header"/>
+      </tal:condition>
     <p tal:condition="description" tal:content="description"/>
     <tal:block tal:condition="mapGraphic">
         <span tal:define="imgurl here/kwMapGraphic/absolute_url;">

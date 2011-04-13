@@ -1,6 +1,6 @@
 from AccessControl import allow_module
 from AccessControl import ModuleSecurityInfo
-from Products.CMFCore.CMFCorePermissions import AddPortalContent
+from Products.CMFCore.permissions import AddPortalContent
 from Products.CMFCore.DirectoryView import registerDirectory
 from Products.CMFCore import utils as cmfutils
 from Products.validation import validation
@@ -16,7 +16,6 @@ ModuleSecurityInfo("zExceptions").declarePublic("NotFound")
 allow_module("Products.PloneOntology.utils")
 allow_module("re")
 
-import workflow
 import proposal
 import ctool
 import ontology
@@ -36,7 +35,7 @@ def initialize(context):
         PROJECTNAME)
 
     cmfutils.ToolInit(PROJECTNAME, tools=tools,
-                   product_name=PROJECTNAME, icon='tool.gif',
+                   icon='tool.gif',
                    ).initialize( context )
 
     cmfutils.registerIcon(ontology.Ontology,

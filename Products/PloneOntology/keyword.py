@@ -2,29 +2,45 @@ from keywordgraph import KeywordGraph
 import keyword
 import owl
 
+from zope.interface import implements
+
 from Products.CMFCore.utils import getToolByName
 from Products.CMFCore.PortalFolder import ContentFilter
-from Products.Archetypes.config import TOOL_NAME as AT_TOOL
 from Products.Archetypes.atapi import *
 from Products.validation.interfaces import ivalidator
+from Products.validation.interfaces.IValidator import IValidator
+from Products.PythonScripts.standard import url_quote
 
 from AccessControl.SecurityInfo import ClassSecurityInfo, ModuleSecurityInfo
-from AccessControl import Permissions
 
 from config import PROJECTNAME
-from utils import _normalize
-
-from types import StringType
-import zLOG, string
+import zLOG
 
 from zExceptions import NotFound
 
+try:
+    # Plone 4 and higher
+    import plone.app.upgrade
+    USE_BBB_VALIDATORS = False
+except ImportError:
+    # BBB Plone 3
+    USE_BBB_VALIDATORS = True
+
 module_security = ModuleSecurityInfo('Products.PloneOntology.keyword')
 
+
 class XMLNCNameValidator:
-    __implements__ = (ivalidator,)
-    def __init__(self, name):
+
+    if USE_BBB_VALIDATORS:
+        __implements__ = (ivalidator,)
+    else:
+        implements(IValidator)
+
+    def __init__(self, name, title='', description=''):
         self.name = name
+        self.title = title or name
+        self.description = description
+
     def __call__(self, value, *args, **kwargs):
         from Products.PloneOntology.owl import isXMLNCName
         if not isXMLNCName(value):
@@ -32,12 +48,20 @@ class XMLNCNameValidator:
         else:
             return 1
 
+
 class UniqueNameValidator:
-    __implements__ = (ivalidator,)
-    def __init__(self, name):
+
+    if USE_BBB_VALIDATORS:
+        __implements__ = (ivalidator,)
+    else:
+        implements(IValidator)
+
+    def __init__(self, name, title='', description=''):
         self.name = name
+        self.title = title or name
+        self.description = description
+
     def __call__(self, value, *args, **kwargs):
-        from Products.CMFCore.utils import getToolByName
         instance = kwargs.get('instance')
         #type = kwargs.get('portal_type')
         ctool = getToolByName(instance, 'portal_classification')
@@ -46,6 +70,35 @@ class UniqueNameValidator:
             return ("Validation failed (%s): '%s' is already used by %s." % (self.name, value, used))
         else:
             return 1
+
+
+class PredictiveTitleToNameValidator:
+
+    if USE_BBB_VALIDATORS:
+        __implements__ = (ivalidator,)
+    else:
+        implements(IValidator)
+
+    name = 'title'
+
+    def __init__(self, name='title', title='', description=''):
+        self.name = name
+        self.title = title or name
+        self.description = description
+
+    def __call__(self, value, *args, **kwargs):
+        instance = kwargs.get('instance')
+        ctool = getToolByName(instance, 'portal_classification')
+        # The reference to getShortAdditionalDescription is unclean as it may
+        # (and likely is) not have been updated yet. I haven't seen it used at
+        # all in our scenarios, though.
+        name = generateName(value, instance.getShortAdditionalDescription())
+        used = ctool.isUsedName(value)
+        if used and used != instance:
+            return "A keyword with the name '%s' already exists." % value
+        else:
+            return False
+
 
 _marker = []
 
@@ -85,6 +138,8 @@ kwSchema = BaseSchema + Schema((
               ),
 
     ))
+kwSchema['title'].validators = PredictiveTitleToNameValidator()
+
 
 module_security.declarePublic('generateName')
 def generateName(title, shortDescription=""):
@@ -96,6 +151,7 @@ def generateName(title, shortDescription=""):
     if shortDescription:
         name = name + '_' + shortDescription
     return owl.toXMLNCName(name)
+
 
 class Keyword(BaseContent):
 
@@ -179,7 +235,13 @@ class Keyword(BaseContent):
         res = [x for x in res if x is not None]
         return res
 
-    def getReferences(self, relation=None):
+    # added relationship parameter because plone.app.linkintegrity will
+    # erroneously call this method thinking it is an implementation of
+    # the one in IReferenceable. When this method is called from there,
+    # it simply returns an empty set. Maybe change this method's name?
+    def getReferences(self, relation=None, relationship=None):
+        if relationship is not None:
+            return set()
         ctool = getToolByName(self, 'portal_classification')
         rlib  = getToolByName(self, 'relations_library')
         if relation:
@@ -332,6 +394,74 @@ class Keyword(BaseContent):
 
         return result
 
+    def getGraphXML(self, levels=2):
+        """returns graphXML source of keyword graph"""
+        #XXX refactor this method and the next one.
+
+        ctool = getToolByName(self, 'portal_classification')
+        forth = ctool.getForth()
+        back = ctool.getBack()
+        out = []
+        nodes = [self]
+        innernodes = self.findDependent(1, exact=True) # level 1 keywords
+        outernodes = self.findDependent(2, exact=True) # level 2 keywords
+
+        for node in nodes + innernodes + outernodes:
+            out.append(
+                    '''<node name="%s">
+                        <label>%s</label>
+                        <dataref>
+                            <ref xlink:show = "replace"
+                                 xlink:href = "graphLinkTarget?keyword=%s"/>
+                        </dataref>
+                     </node>''' % (
+                node.getId(), node.Title(), url_quote(node.Title())))
+
+        if forth == '1':
+         for rel in self.getRelations():
+            obs = self.getReferences(rel)
+            for cnode in obs:
+                out.append('<edge source="%s" target="%s" class="%s"/>' % (
+                    self.getId(), cnode.getId(), rel))
+                #dot.relation(self, cnode, rel)
+        if back == '1':
+         for backrel in self.getBackRelations():
+            obsback = self.getBackReferences(backrel)
+            for cnode in obsback:
+                out.append('<edge source="%s" target="%s" class="back_%s"/>' % (
+                    cnode.getId(), self.getId(), backrel))
+
+        # from innernodes w/o back to central
+        if forth == '1':
+         for node in innernodes:
+            rels = node.getRelations()
+            for rel in rels:
+                obs = node.getReferences(rel)
+                try:
+                    obs.remove(self)
+                except ValueError: # self not in list
+                    pass
+
+                for cnode in obs:
+                    out.append('<edge source="%s" target="%s" class="%s"/>' % (
+                        node.getId(), cnode.getId(), rel))
+
+        if back == '1':
+         for node in innernodes:
+            relsback = node.getBackRelations()
+            for backrel in relsback:
+                obsback = node.getBackReferences(backrel)
+                try:
+                    obsback.remove(self)
+                except ValueError: # self not in list
+                    pass
+
+                for cnode in obsback:
+                    out.append('<edge source="%s" target="%s" class="%s"/>' % (
+                        cnode.getId(), node.getId(), backrel))
+
+        return '\n'.join(out)
+
     def generateGraph(self, levels=2):
         """Generate graph source code for GraphViz.
         """
@@ -342,8 +472,9 @@ class Keyword(BaseContent):
         innernodes = self.findDependent(1, exact=True) # level 1 keywords
         outernodes = self.findDependent(2, exact=True) # level 2 keywords
 
+
         dot = KeywordGraph(ctool.getGVFont(), ctool.getRelFont(), ctool.getFocusNodeShape(), ctool.getFocusNodeColor(), ctool.getFocusNodeFontColor(), ctool.getFocusNodeFontSize(), ctool.getFirstNodeShape(), ctool.getFirstNodeColor(), ctool.getFirstNodeFontColor(), ctool.getFirstNodeFontSize(), ctool.getSecondNodeShape(), ctool.getSecondNodeColor(), ctool.getSecondNodeFontColor(), ctool.getSecondNodeFontSize(), ctool.getEdgeShape(), ctool.getEdgeColor(), ctool.getEdgeFontColor(), ctool.getEdgeFontSize())
-        
+
         dot.graphHeader(self)
 
         ### Graph nodes
@@ -373,7 +504,7 @@ class Keyword(BaseContent):
         # from innernodes w/o back to central
         if forth == '1':
          for node in innernodes:
-            rels = node.getRelations() 
+            rels = node.getRelations()
             for rel in rels:
                 obs = node.getReferences(rel)
                 try:
@@ -404,7 +535,6 @@ class Keyword(BaseContent):
     def updateKwMap(self, levels=2):
         """Update kwMap cached images. Returns string containing error messages, empty if none.
         """
-        ctool = getToolByName(self, 'portal_classification')
         gvtool = getToolByName(self, 'graphviz_tool')
 
         if not gvtool.isLayouterPresent():
@@ -423,6 +553,7 @@ class Keyword(BaseContent):
 
         return error
 
+
 ## def modify_fti(fti):
 ##     fti['allow_discussion'] = 1
 ##     # hide unnecessary tabs (usability enhancement)
@@ -431,4 +562,4 @@ class Keyword(BaseContent):
 ##             a['visible'] = 0
 ##     return fti
 
-registerType(Keyword)
+registerType(Keyword, PROJECTNAME)
