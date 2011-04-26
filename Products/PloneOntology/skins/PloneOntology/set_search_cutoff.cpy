@@ -5,7 +5,7 @@
 ##bind script=script
 ##bind state=state
 ##bind subpath=traverse_subpath
-##parameters=cutoff=0.1, storage='default', classify, tool='fdp', types=[], font='', relfont='', forth=1, back=0, fontpath='', focus_nodeshape = 'ellipse', focus_nodecolor = '#eeeeee', focus_node_font_color = '#000000', focus_node_font_size = 9, first_nodeshape = 'box', first_nodecolor = 'transparent', first_node_font_color = '#000000', first_node_font_size = 8, second_nodeshape = 'box', second_nodecolor = 'transparent', second_node_font_color = '#000000', second_node_font_size = 7, edgeshape = 'normal', edgecolor = '#000000', edge_font_color = '#111111', edge_font_size = 8
+##parameters=cutoff=0.1, storage='default', classify='classifiedAs_byPloneOntology', tool='fdp', types=[], font='', relfont='', forth=1, back=0, fontpath='', focus_nodeshape = 'ellipse', focus_nodecolor = '#eeeeee', focus_node_font_color = '#000000', focus_node_font_size = 9, first_nodeshape = 'box', first_nodecolor = 'transparent', first_node_font_color = '#000000', first_node_font_size = 8, second_nodeshape = 'box', second_nodecolor = 'transparent', second_node_font_color = '#000000', second_node_font_size = 7, edgeshape = 'normal', edgecolor = '#000000', edge_font_color = '#111111', edge_font_size = 8
 ##title=
 ##
 
@@ -63,6 +63,7 @@ try:
     ctool.setSearchCutoff(cutoff)
 except ValueError:
     return state.set(portal_status_message='Error: Enter a positive float value.')
+
 ctool.setFocusNodeColor(focus_nodecolor)
 ctool.setFocusNodeFontColor(focus_node_font_color)
 ctool.setFocusNodeFontSize(focus_node_font_size)

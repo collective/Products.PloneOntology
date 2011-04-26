@@ -1408,6 +1408,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
             pass # ignore NotFound exception for silent operation without graphviz
 
         ontology.rootKeywords = ontology.getTopLevelTitlesOrNames()
+        ontology.updateGraphvizMap()
+
         return error_string
 
 

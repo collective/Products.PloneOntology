@@ -13,9 +13,8 @@
 <body>
 
 <div metal:fill-slot="prefs_configlet_main"
-     tal:define="ctool python:here.portal_classification;
-                 relations python:ctool.relations(here.relations_library);
-                ">
+     tal:define="ctool python:context.portal_classification;
+                 relations python:ctool.relations(context.relations_library);">
 
 <div class="configlet">
 
@@ -72,11 +71,14 @@
         <!-- 2005-06-28 XML import hidden in favor of OWL import.
         <input type="submit" name="form.button.import" value="Import Ontology"/>
         -->
+
+        <span i18n:translate="Ontology_label_name">Ontology name</span> <input type="text" name="ontology" 
+                                                                               tal:attributes="value ctool/getStorageId" /> <br/>
+
         <input type="submit" 
                name="form.button.impOWL" 
                value="Import OWL Ontology"
                i18n:attributes="value" />
-
         <h4 i18n:translate="Ontology_label_export">Export</h4>
         <!-- 2005-06-28 XML export hidden in favor of OWL export.
         <input type="submit" name="form.button.export" value="Export Ontology"/>
