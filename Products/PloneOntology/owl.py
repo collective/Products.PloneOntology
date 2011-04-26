@@ -381,7 +381,7 @@ class OWLImporter(OWLBase):
         return error_string
 
     def importClass(self, cl):
-        error_string=""
+        error_string = ""
         ct = getToolByName(self._context, 'portal_classification')
         kid = cl.getAttribute('rdf:ID').encode(ct.getEncoding()) or parseURIRef(cl.getAttribute('rdf:about'))['fragment'].encode(ct.getEncoding())
 

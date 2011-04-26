@@ -41,6 +41,16 @@ class TestClassificationTool(PloneOntologyTestCase):
         kw = self.ctool.addKeyword('test')
         self.failUnlessRaises(NameError, self.ctool.addKeyword, 'test')
 
+    def testAddKeywordToOntology(self):
+        """
+        The 'addKeyword' method takes an optional 'ontology' keyword specifying
+        into which ontology the keyword should be added.
+        """
+        o1 = self.ctool.addOntology("o1")
+        foo = self.ctool.addKeyword("foo")
+        foo1 = self.ctool.addKeyword("foo", ontology="o1")
+        self.assertNotEqual(foo, foo1)
+
     def testKeywordCreationEmptyName(self):
         self.failUnlessRaises(ValidationException, self.ctool.addKeyword, '')
 
@@ -67,6 +77,17 @@ class TestClassificationTool(PloneOntologyTestCase):
 
         self.assertEqual(kw, kw2)
 
+    def testKeywordFetchFromOntology(self):
+        """
+        The 'getKeyword' method takes an optional 'ontology' keyword specifying
+        into which ontology the keyword should be fetched from.
+        """
+        self.ctool.addOntology("o1")
+        self.ctool.addKeyword("foo")
+        self.ctool.addKeyword("foo", ontology="o1")
+        self.assertNotEqual(self.ctool.getKeyword("foo"),
+                            self.ctool.getKeyword("foo", ontology="o1"))
+
     def testKeywordFetchNotExisting(self):
         self.failUnlessRaises(NotFound, self.ctool.getKeyword, 'test')
 
@@ -91,6 +112,20 @@ class TestClassificationTool(PloneOntologyTestCase):
         self.ctool.delKeyword('test')
 
         self.failIf(kw in self.ctool.keywords())
+
+    def testKeywordDeleteFromOntology(self):
+        """
+        It is possible to specify which ontology to delete from when deleting a
+        keyword.
+        """
+        self.ctool.addOntology("o1")
+        self.ctool.addKeyword("test")
+        self.ctool.addKeyword("test", ontology="o1")
+        self.assertTrue("test" in self.ctool.keywords(ontology="o1"))
+        self.assertTrue("test" in self.ctool.keywords())
+        self.ctool.delKeyword("test", ontology="o1")
+        self.assertFalse("test" in self.ctool.keywords(ontology="o1"))
+        self.assertTrue("test" in self.ctool.keywords())
 
     def testKeywordDeleteNotExisting(self):
         self.ctool.delKeyword('test')

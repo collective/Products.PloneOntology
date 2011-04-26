@@ -146,9 +146,14 @@ class TestOWLImporter(PloneOntologyTestCase):
         cl = self.exporter.getDOM().documentElement.lastChild
         self.importer.importClass(cl)
 
-        self.assertEquals(["Bar"], [x.getName() for x in foo.getReferences('synonymOf')])
+        self.assertEquals(["Bar"], [
+            x.getName() for x in foo.getReferences('synonymOf')])
 
     def testOWLImporterOntology(self):
+        """
+        Importing an ontology creates an 'Ontology' object inside the
+        'ontologies' container with the appropriate title and description.
+        """
         self.exporter.generateOntology("Baz", "baz is good")
         ontology = self.exporter.getDOM().documentElement.lastChild
 

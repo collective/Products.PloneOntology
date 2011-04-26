@@ -689,7 +689,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
         return container[name]
 
     def addKeyword(self, name, title="", description="",
-                   shortDescription="", uid=""):
+                   shortDescription="", uid="", ontology=None):
         """Create a keyword in the current ontology. If 'uid' is specified, the referenced keyword is registered as 'name'.
 
         Exceptions:
@@ -700,16 +700,22 @@ class ClassificationTool(UniqueObject, SimpleItem):
         if not owl.isXMLNCName(name):
             raise ValidationException("Invalid name for keyword specified")
 
-        if self.isUsedName(name):
+        if self.isUsedName(name, ontology=ontology):
             raise NameError, "Keyword '%s' already exists in current ontology" % name
 
-        storage = self.getStorage()
+        if ontology is None:
+            storage = self.getStorage()
+        else:
+            storage = self.getOntology(ontology)
+
         if not uid:
             uid = generateUniqueId('Keyword')
             storage.invokeFactory('Keyword', uid)
+
         kw = getattr(storage, uid)
         if not title:
             title = name
+
         kw.setName(name)
         kw.setTitle(title)
         kw.setKwDescription(description)
@@ -721,7 +727,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
         return kw
 
-    def getKeyword(self, name):
+    def getKeyword(self, name, ontology=None):
         """Return keyword 'name' from current ontology.
 
         Exceptions:
@@ -733,14 +739,20 @@ class ClassificationTool(UniqueObject, SimpleItem):
         if not name:
             raise ValidationException, "Empty keyword name."
 
+        if ontology is None:
+            storage = self.getStorage()
+        else:
+            storage = self.getOntology(ontology)
+
         try:
             return catalog.searchResults(
                 portal_type='Keyword',
-                name=name.decode(self.getEncoding()))[0].getObject()
+                name=name.decode(self.getEncoding()),
+                path="/".join(storage.getPhysicalPath()))[0].getObject()
         except IndexError:
             raise NotFound, "Keyword '%s' not found in current ontology" % name
 
-    def isUsedName(self, name, type="Keyword"):
+    def isUsedName(self, name, type="Keyword", ontology=None):
         """Check if 'name' is used for 'type' already.
 
         Exceptions:
@@ -748,7 +760,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """
         try:
             if   type == "Keyword":
-                return self.getKeyword(name)
+                return self.getKeyword(name, ontology=ontology)
             elif type == "Ruleset":
                 return self.getRelation(name)
             else:
@@ -776,15 +788,19 @@ class ClassificationTool(UniqueObject, SimpleItem):
         except IndexError:
             raise NotFound, "KeywordProposal '%s' not found" % name
 
-    def delKeyword(self, name):
+    def delKeyword(self, name, ontology=None):
         """Remove keyword from ontology.
         """
         try:
-            kw = self.getKeyword(name)
+            kw = self.getKeyword(name, ontology=ontology)
         except NotFound:
             return
 
-        storage = self.getStorage()
+        if ontology is None:
+            storage = self.getStorage()
+        else:
+            storage = self.getOntology(ontology)
+
         try:
             storage._delObject(kw.getId())
             zLOG.LOG(PROJECTNAME, zLOG.INFO,
@@ -792,12 +808,20 @@ class ClassificationTool(UniqueObject, SimpleItem):
         except KeyError:
             pass
 
-    def keywords(self):
+    def keywords(self, ontology=None):
         """Return a list of all existing keyword names.
         """
         catalog = getToolByName(self, 'portal_catalog')
 
-        return [kw_res.getObject().getName() for kw_res in catalog.searchResults(portal_type='Keyword')]
+        if ontology is None:
+            storage = self.getStorage()
+        else:
+            storage = self.getOntology(ontology)
+
+        return [kw_res.getObject().getName()
+                for kw_res in catalog.searchResults(
+                    portal_type='Keyword',
+                    path="/".join(storage.getPhysicalPath()))]
 
     def addRelation(self, name, weight=0.0, types=[], inverses=[], uid=""):
         """Create a keyword relation 'name' in the Plone Relations library, if non-existant.
