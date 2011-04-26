@@ -149,6 +149,25 @@ class TestOWLImporter(PloneOntologyTestCase):
         self.assertEquals(["Bar"], [
             x.getName() for x in foo.getReferences('synonymOf')])
 
+    def testWBOWLImporterOntologyDefault(self):
+        """
+        Importing an ontology without specifying which looks for a single
+        'Ontology' element and then creates an object inside the 'ontologies'
+        container with the appropriate title and description.
+        """
+        self.exporter.generateOntology("Baz", "baz is good")
+        self.importer._dom = self.exporter.getDOM()
+
+        importedOntology = self.importer.importOntology()
+        self.assertTrue(self.portal.hasObject("ontologies"))
+        self.assertTrue(self.portal["ontologies"].hasObject("baz"))
+
+        baz = self.ct.getOntology("baz")
+        self.assertEqual(importedOntology, baz)
+        self.assertEqual("Ontology", baz.getPortalTypeName())
+        self.assertEqual("Baz", baz.Title())
+        self.assertEqual("baz is good", baz.Description())
+
     def testOWLImporterOntology(self):
         """
         Importing an ontology creates an 'Ontology' object inside the
@@ -166,6 +185,22 @@ class TestOWLImporter(PloneOntologyTestCase):
         self.assertEqual("Ontology", baz.getPortalTypeName())
         self.assertEqual("Baz", baz.Title())
         self.assertEqual("baz is good", baz.Description())
+
+    def testWBOWLImporterOntologyNoOntology(self):
+        """
+        Trying to import an ontology without an 'Ontology' object in the DOM
+        returns None.
+        """
+        self.importer._dom = dom = self.exporter.getDOM()
+
+        existing = dom.getElementsByTagName("owl:Ontology")
+        if existing.length > 0:
+            for node in existing:
+                dom.documentElement.removeChild(node)
+
+        importedOntology = self.importer.importOntology()
+        self.assertFalse(self.portal.hasObject("ontologies"))
+        self.assertEqual(None, importedOntology)
 
 
 def test_suite():

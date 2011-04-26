@@ -110,6 +110,11 @@ class OWLExporter(OWLBase):
         Generate an ontology header with a label and optional comment and
         version info.
         """
+        existing = self._dom.getElementsByTagName("owl:Ontology")
+        if existing.length > 0:
+            for node in existing:
+                self._dom.documentElement.removeChild(node)
+
         ontology = self._dom.createElement('owl:Ontology')
         ontology.setAttribute('rdf:about', '')
 
@@ -345,28 +350,38 @@ class OWLImporter(OWLBase):
 
             return rid
 
-    def importOntology(self, ontology):
-        ct = getToolByName(self._context, 'portal_classification')
+    def importOntology(self, ontology=None):
+        ct = getToolByName(self._context, "portal_classification")
+
+        if ontology is None:
+            ontology = self._dom.getElementsByTagName("owl:Ontology")
+            if not ontology.length:
+                return
+            ontology = ontology.item(0)
 
         ontologyLabel = ""
-        for label in ontology.getElementsByTagName('rdfs:label'):
+        for label in ontology.getElementsByTagName("rdfs:label"):
             # ignore language and use value of first text or cdata node.
             if label.firstChild:
                 try:
                     ontologyLabel = label.firstChild.data.encode(
                         ct.getEncoding()).strip()
-                except AttributeError: # fist child node has no 'data', i.e. it is no text or cdata node.
+                except AttributeError:
+                    # first child node has no 'data', i.e. it is no text or
+                    # cdata node.
                     continue
                 break
 
         ontologyDescription = ""
-        for comment in ontology.getElementsByTagName('rdfs:comment'):
+        for comment in ontology.getElementsByTagName("rdfs:comment"):
             # ignore language and use value of first text or cdata node.
             if comment.firstChild:
                 try:
                     ontologyDescription = comment.firstChild.data.encode(
                         ct.getEncoding()).strip()
-                except AttributeError: # fist child node has no 'data', i.e. it is no text or cdata node.
+                except AttributeError:
+                    # first child node has no 'data', i.e. it is no text or
+                    # cdata node.
                     continue
                 break
 
@@ -405,7 +420,9 @@ class OWLImporter(OWLBase):
             if label.firstChild:
                 try:
                     kw.setTitle(label.firstChild.data.encode(ct.getEncoding()).strip())
-                except AttributeError: # fist child node has no 'data', i.e. it is no text or cdata node.
+                except AttributeError:
+                    # first child node has no 'data', i.e. it is no text or
+                    # cdata node.
                     continue
                 break
 
@@ -414,7 +431,9 @@ class OWLImporter(OWLBase):
             if comment.firstChild:
                 try:
                     kw.setShortAdditionalDescription(comment.firstChild.data.encode(ct.getEncoding()).strip())
-                except AttributeError: # fist child node has no 'data', i.e. it is no text or cdata node.
+                except AttributeError:
+                    # first child node has no 'data', i.e. it is no text or
+                    # cdata node.
                     continue
                 break
 
@@ -423,7 +442,9 @@ class OWLImporter(OWLBase):
             if description.firstChild:
                 try:
                     kw.setKwDescription(description.firstChild.data.encode(ct.getEncoding()).strip())
-                except AttributeError: # fist child node has no 'data', i.e. it is no text or cdata node.
+                except AttributeError:
+                    # first child node has no 'data', i.e. it is no text or
+                    # cdata node.
                     continue
                 break
 

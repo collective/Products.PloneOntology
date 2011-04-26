@@ -144,6 +144,10 @@ class TestOWLExporter(PloneOntologyTestCase):
         self.assertEqual("blaz", desc.item(0).firstChild.data)
 
     def testOWLExportGenerateOntologyDefault(self):
+        """
+        Calling generateOntology with default arguments simply adds a label,
+        but no comment or versionInfo.
+        """
         self.exporter.generateOntology("Foo")
         ontology = self.exporter.getDOM().documentElement.lastChild
         self.assertEqual('', ontology.getAttribute('rdf:about'))
@@ -159,6 +163,10 @@ class TestOWLExporter(PloneOntologyTestCase):
         self.assertEqual(0, versionInfo.length)
 
     def testOWLExportGenerateOntologyComment(self):
+        """
+        Calling generateOntology with a 'comment' argument generates an
+        'rdfs:comment' element.
+        """
         self.exporter.generateOntology("Foo", "foo is awesome")
         ontology = self.exporter.getDOM().documentElement.lastChild
 
@@ -167,12 +175,42 @@ class TestOWLExporter(PloneOntologyTestCase):
         self.assertEqual("foo is awesome", comment.item(0).firstChild.data)
 
     def testOWLExportGenerateOntologyVersionInfo(self):
+        """
+        Calling generateOntology with a 'versionInfo' argument generates an
+        'owl:versionInfo' element.
+        """
         self.exporter.generateOntology("Foo", versionInfo="v0.1")
         ontology = self.exporter.getDOM().documentElement.lastChild
 
         versionInfo = ontology.getElementsByTagName('owl:versionInfo')
         self.assertEqual(1, versionInfo.length)
         self.assertEqual("v0.1", versionInfo.item(0).firstChild.data)
+
+    def testOWLExportGenerateOntologyRemovesExisting(self):
+        """
+        Calling generateOntology removes existing 'owl:Ontology' elements if
+        existing.
+        """
+        ontology = self.exporter.getDOM().getElementsByTagName("owl:Ontology")
+        self.assertEqual(1, ontology.length)
+
+        self.exporter.generateOntology("Foo")
+        ontology = self.exporter.getDOM().getElementsByTagName("owl:Ontology")
+        self.assertEqual(1, ontology.length)
+
+        ontology = ontology.item(0)
+        self.assertEqual('', ontology.getAttribute('rdf:about'))
+
+        label = ontology.getElementsByTagName('rdfs:label')
+        self.assertEqual(1, label.length)
+        self.assertEqual("Foo", label.item(0).firstChild.data)
+
+        comment = ontology.getElementsByTagName('rdfs:comment')
+        self.assertEqual(0, comment.length)
+
+        versionInfo = ontology.getElementsByTagName('owl:versionInfo')
+        self.assertEqual(0, versionInfo.length)
+
 
 def test_suite():
     from unittest import TestSuite, makeSuite
