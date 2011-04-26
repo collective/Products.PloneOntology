@@ -148,6 +148,21 @@ class TestOWLImporter(PloneOntologyTestCase):
 
         self.assertEquals(["Bar"], [x.getName() for x in foo.getReferences('synonymOf')])
 
+    def testOWLImporterOntology(self):
+        self.exporter.generateOntology("Baz", "baz is good")
+        ontology = self.exporter.getDOM().documentElement.lastChild
+
+        importedOntology = self.importer.importOntology(ontology)
+        self.assertTrue(self.portal.hasObject("ontologies"))
+        self.assertTrue(self.portal["ontologies"].hasObject("baz"))
+
+        baz = self.ct.getOntology("baz")
+        self.assertEqual(importedOntology, baz)
+        self.assertEqual("Ontology", baz.getPortalTypeName())
+        self.assertEqual("Baz", baz.Title())
+        self.assertEqual("baz is good", baz.Description())
+
+
 def test_suite():
     from unittest import TestSuite, makeSuite
     suite = TestSuite()

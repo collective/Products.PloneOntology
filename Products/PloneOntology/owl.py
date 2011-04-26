@@ -1,9 +1,13 @@
+import re
+
+from xml.dom.minidom              import parse, parseString
+
 from AccessControl                import ModuleSecurityInfo
 from Products.CMFCore.utils       import getToolByName
+from Products.CMFPlone.utils      import normalizeString
 from Products.Relations.exception import ValidationException
 from zExceptions                  import NotFound
-from xml.dom.minidom              import parse, parseString, getDOMImplementation
-import re
+
 
 module_security = ModuleSecurityInfo('Products.PloneOntology.owl')
 
@@ -101,6 +105,30 @@ class OWLExporter(OWLBase):
 
     def serialize(self, encoding='utf-8'):
         return self.getDOM().toprettyxml(encoding=encoding)
+
+    def generateOntology(self, label, comment=None, versionInfo=None):
+        """
+        Generate an ontology header with a label and optional comment and
+        version info.
+        """
+        ontology = self._dom.createElement('owl:Ontology')
+        ontology.setAttribute('rdf:about', '')
+
+        l = self._dom.createElement('rdfs:label')
+        l.appendChild(self._dom.createTextNode(label))
+        ontology.appendChild(l)
+
+        if comment is not None:
+            c = self._dom.createElement('rdfs:comment')
+            c.appendChild(self._dom.createTextNode(comment))
+            ontology.appendChild(c)
+
+        if versionInfo is not None:
+            l = self._dom.createElement('owl:versionInfo')
+            l.appendChild(self._dom.createTextNode(versionInfo))
+            ontology.appendChild(l)
+
+        self._dom.documentElement.appendChild(ontology)
 
     def generateClass(self, name, superclasses=[], labels=[], comments=[],
                       descriptions=[], classproperties=[]
@@ -317,6 +345,48 @@ class OWLImporter(OWLBase):
                 rel.setDescription("")
 
             return rid
+
+    def importOntology(self, ontology):
+        ct = getToolByName(self._context, 'portal_classification')
+
+        ontologyLabel = ""
+        for label in ontology.getElementsByTagName('rdfs:label'):
+            # ignore language and use value of first text or cdata node.
+            if label.firstChild:
+                try:
+                    ontologyLabel = label.firstChild.data.encode(
+                        ct.getEncoding()).strip()
+                except AttributeError: # fist child node has no 'data', i.e. it is no text or cdata node.
+                    continue
+                break
+
+        ontologyId = normalizeString(ontologyLabel)
+
+        ontologyDescription = ""
+        for comment in ontology.getElementsByTagName('rdfs:comment'):
+            # ignore language and use value of first text or cdata node.
+            if comment.firstChild:
+                try:
+                    ontologyDescription = comment.firstChild.data.encode(
+                        ct.getEncoding()).strip()
+                except AttributeError: # fist child node has no 'data', i.e. it is no text or cdata node.
+                    continue
+                break
+
+        portal = getToolByName(self._context, "portal_url").getPortalObject()
+        if not portal.hasObject("ontologies"):
+            portal.invokeFactory("Folder", "ontologies", title="Ontologies")
+
+        container = portal["ontologies"]
+        if not container.hasObject(ontologyId):
+            pt = getToolByName(self._context, 'portal_types')
+            ti = pt.getTypeInfo('Ontology')
+            ti.global_allow = True
+            container.invokeFactory('Ontology', ontologyId,
+                                    title=ontologyLabel,
+                                    description=ontologyDescription)
+            ti.global_allow = False
+        return container[ontologyId]
 
     def importClasses(self):
         error_string = ''

@@ -143,6 +143,37 @@ class TestOWLExporter(PloneOntologyTestCase):
         self.assertEqual(1, desc.length)
         self.assertEqual("blaz", desc.item(0).firstChild.data)
 
+    def testOWLExportGenerateOntologyDefault(self):
+        self.exporter.generateOntology("Foo")
+        ontology = self.exporter.getDOM().documentElement.lastChild
+        self.assertEqual('', ontology.getAttribute('rdf:about'))
+
+        label = ontology.getElementsByTagName('rdfs:label')
+        self.assertEqual(1, label.length)
+        self.assertEqual("Foo", label.item(0).firstChild.data)
+
+        comment = ontology.getElementsByTagName('rdfs:comment')
+        self.assertEqual(0, comment.length)
+
+        versionInfo = ontology.getElementsByTagName('owl:versionInfo')
+        self.assertEqual(0, versionInfo.length)
+
+    def testOWLExportGenerateOntologyComment(self):
+        self.exporter.generateOntology("Foo", "foo is awesome")
+        ontology = self.exporter.getDOM().documentElement.lastChild
+
+        comment = ontology.getElementsByTagName('rdfs:comment')
+        self.assertEqual(1, comment.length)
+        self.assertEqual("foo is awesome", comment.item(0).firstChild.data)
+
+    def testOWLExportGenerateOntologyVersionInfo(self):
+        self.exporter.generateOntology("Foo", versionInfo="v0.1")
+        ontology = self.exporter.getDOM().documentElement.lastChild
+
+        versionInfo = ontology.getElementsByTagName('owl:versionInfo')
+        self.assertEqual(1, versionInfo.length)
+        self.assertEqual("v0.1", versionInfo.item(0).firstChild.data)
+
 def test_suite():
     from unittest import TestSuite, makeSuite
     suite = TestSuite()

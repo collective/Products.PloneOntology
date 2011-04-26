@@ -1107,6 +1107,20 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
         return kwstorage
 
+    def getOntology(self, name):
+        """Get a specific ontology by name."""
+        urltool = getToolByName(self, 'portal_url')
+        portal = urltool.getPortalObject()
+
+        if not portal.hasObject("ontologies"):
+            return
+
+        container = portal["ontologies"]
+        if not container.hasObject(name):
+            return
+
+        return container[name]
+
     def isAllowed(self, obj):
         """Return true if current user is allowed to access obj.
 
@@ -1236,7 +1250,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
     def getSearchCutoff(self):
         return self._cutoff
 
-    def searchMatchingKeywordsFor(self, obj, search, exclude=[], search_kw_proposals='false', search_linked_keywords='true'):
+    def searchMatchingKeywordsFor(self, obj, search, exclude=[],
+                                  search_kw_proposals='false',
+                                  search_linked_keywords='true'):
         """Return keywords matching a search string.
         """
         #XXX obj in method signature is obsolete
