@@ -4,7 +4,6 @@ from xml.dom.minidom              import parse, parseString
 
 from AccessControl                import ModuleSecurityInfo
 from Products.CMFCore.utils       import getToolByName
-from Products.CMFPlone.utils      import normalizeString
 from Products.Relations.exception import ValidationException
 from zExceptions                  import NotFound
 
@@ -360,8 +359,6 @@ class OWLImporter(OWLBase):
                     continue
                 break
 
-        ontologyId = normalizeString(ontologyLabel)
-
         ontologyDescription = ""
         for comment in ontology.getElementsByTagName('rdfs:comment'):
             # ignore language and use value of first text or cdata node.
@@ -373,20 +370,7 @@ class OWLImporter(OWLBase):
                     continue
                 break
 
-        portal = getToolByName(self._context, "portal_url").getPortalObject()
-        if not portal.hasObject("ontologies"):
-            portal.invokeFactory("Folder", "ontologies", title="Ontologies")
-
-        container = portal["ontologies"]
-        if not container.hasObject(ontologyId):
-            pt = getToolByName(self._context, 'portal_types')
-            ti = pt.getTypeInfo('Ontology')
-            ti.global_allow = True
-            container.invokeFactory('Ontology', ontologyId,
-                                    title=ontologyLabel,
-                                    description=ontologyDescription)
-            ti.global_allow = False
-        return container[ontologyId]
+        return ct.addOntology(ontologyLabel, ontologyDescription)
 
     def importClasses(self):
         error_string = ''

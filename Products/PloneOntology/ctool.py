@@ -1,4 +1,5 @@
 from Products.CMFCore.utils import getToolByName, UniqueObject
+from Products.CMFPlone.utils import normalizeString
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from AccessControl import getSecurityManager, Unauthorized
 from OFS.SimpleItem import SimpleItem
@@ -653,7 +654,42 @@ class ClassificationTool(UniqueObject, SimpleItem):
         except:
             return 'README.txt not found'
 
-    def addKeyword(self, name, title="", description="", shortDescription="", uid=""):
+    def addOntology(self, label, description=""):
+        """Add a new ontology to the portal if it doesn't exist yet."""
+        portal = getToolByName(self, "portal_url").getPortalObject()
+        if not portal.hasObject("ontologies"):
+            portal.invokeFactory("Folder", "ontologies", title="Ontologies")
+
+        ontologyId = normalizeString(label)
+        container = portal["ontologies"]
+        if not container.hasObject(ontologyId):
+            pt = getToolByName(self, "portal_types")
+            ti = pt.getTypeInfo("Ontology")
+            ti.global_allow = True
+            container.invokeFactory("Ontology", ontologyId,
+                                    title=label,
+                                    description=description)
+            ti.global_allow = False
+        return container[ontologyId]
+
+    def getOntology(self, name):
+        """
+        Get a specific ontology by name if it exists, otherwise return None.
+        """
+        urltool = getToolByName(self, "portal_url")
+        portal = urltool.getPortalObject()
+
+        if not portal.hasObject("ontologies"):
+            return
+
+        container = portal["ontologies"]
+        if not container.hasObject(name):
+            return
+
+        return container[name]
+
+    def addKeyword(self, name, title="", description="",
+                   shortDescription="", uid=""):
         """Create a keyword in the current ontology. If 'uid' is specified, the referenced keyword is registered as 'name'.
 
         Exceptions:
@@ -698,7 +734,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
             raise ValidationException, "Empty keyword name."
 
         try:
-            return catalog.searchResults(portal_type='Keyword', name=name.decode(self.getEncoding()))[0].getObject()
+            return catalog.searchResults(
+                portal_type='Keyword',
+                name=name.decode(self.getEncoding()))[0].getObject()
         except IndexError:
             raise NotFound, "Keyword '%s' not found in current ontology" % name
 
@@ -714,7 +752,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
             elif type == "Ruleset":
                 return self.getRelation(name)
             else:
-                raise ValidationException, "Unknown type for name '%s': %s" % (name,type)
+                raise ValidationException(
+                    "Unknown type for name '%s': %s" % (name,type))
         except NotFound:
             return False
 
@@ -731,14 +770,15 @@ class ClassificationTool(UniqueObject, SimpleItem):
             raise ValidationException, "Empty keyword proposal name."
 
         try:
-            return catalog.searchResults(portal_type='KeywordProposal', name=name.decode(self.getEncoding()))[0].getObject()
+            return catalog.searchResults(
+                portal_type='KeywordProposal',
+                name=name.decode(self.getEncoding()))[0].getObject()
         except IndexError:
             raise NotFound, "KeywordProposal '%s' not found" % name
 
     def delKeyword(self, name):
         """Remove keyword from ontology.
         """
-
         try:
             kw = self.getKeyword(name)
         except NotFound:
@@ -1107,20 +1147,6 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
         return kwstorage
 
-    def getOntology(self, name):
-        """Get a specific ontology by name."""
-        urltool = getToolByName(self, 'portal_url')
-        portal = urltool.getPortalObject()
-
-        if not portal.hasObject("ontologies"):
-            return
-
-        container = portal["ontologies"]
-        if not container.hasObject(name):
-            return
-
-        return container[name]
-
     def isAllowed(self, obj):
         """Return true if current user is allowed to access obj.
 
@@ -1305,7 +1331,6 @@ class ClassificationTool(UniqueObject, SimpleItem):
     def generateGraphvizMap(self):
         """Generate graph source code for GraphViz.
         """
-        storage = self.getStorage()
         catalog = getToolByName(self, 'portal_catalog')
 
         kws = [kw_res.getObject() for kw_res in catalog.searchResults(portal_type='Keyword')]
