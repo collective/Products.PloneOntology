@@ -21,7 +21,6 @@ class TestClassificationTool(PloneOntologyTestCase):
         self.setRoles(['Manager'])
         self.rtool = self.portal.relations_library
         self.ctool = self.portal.portal_classification
-        self.storage = self.ctool.getStorage()
 
     ###### The tests ##########
 
@@ -54,9 +53,10 @@ class TestClassificationTool(PloneOntologyTestCase):
         self.assertEqual(kw1, kw2)
 
     def testKeywordCreationFromExistingUID(self):
-        self.storage.invokeFactory('Keyword', 'test_uid')
+        storage = self.ctool.getStorage()
+        storage.invokeFactory('Keyword', 'test_uid')
         kw = self.ctool.addKeyword('test', uid='test_uid')
-        self.assertEqual(kw, getattr(self.storage, 'test_uid'))
+        self.assertEqual(kw, getattr(storage, 'test_uid'))
 
     def testKeywordCreationFromNotExistingUID(self):
         self.failUnlessRaises(AttributeError, self.ctool.addKeyword, 'test', uid='no_such_uid')
@@ -422,7 +422,8 @@ class TestClassificationTool(PloneOntologyTestCase):
     def testReferenceDeleteUnknownRelation(self):
         child  = self.ctool.addKeyword('child')
         kid  = self.ctool.addKeyword('kid')
-        self.assertRaises(NotFound, self.ctool.delReference, 'child', 'kid', 'siblingOf')
+        self.assertRaises(NotFound, self.ctool.delReference,
+                          'child', 'kid', 'siblingOf')
 
     def testEmptyAfterCreation(self):
         """Tool contains no keywords after initialization"""
@@ -430,8 +431,9 @@ class TestClassificationTool(PloneOntologyTestCase):
 
     def testKeywordCreation(self):
         """Creating keywords in object is possible"""
+        storage = self.ctool.getStorage()
         self.ctool.manage_addKeyword("Thomas")
-        self.assertEqual(len(self.storage.objectIds('Keyword')), 1)
+        self.assertEqual(len(storage.objectIds('Keyword')), 1)
 
     def testSearchOnEmptyStorage(self):
         """
@@ -469,6 +471,43 @@ class TestClassificationTool(PloneOntologyTestCase):
         self.ctool.delRelation('fooble')
 
         self.failIf('fooble' in self.ctool.relations(self.rtool))
+
+    def testGetStorageBackwardsCompatible(self):
+        """
+        Calling getStorage should return a pre-existing storage if an ontology
+        by that name doesn't exist but a portal-level object with the same name
+        does.
+        """
+        self.portal.invokeFactory("Folder", "banana")
+        self.ctool.setStorageId("banana")
+        self.ctool.addOntology("apple")
+        self.assertFalse(self.portal["ontologies"].hasObject("banana"))
+        self.assertEqual(self.portal["banana"], self.ctool.getStorage())
+
+    def testGetStorageReturnsOntologyIfExists(self):
+        """
+        If an ontology exists with the set storage id, it will be returned
+        instead, even if a portal-level object by the same name exists.
+        """
+        self.portal.invokeFactory("Folder", "banana")
+        self.ctool.setStorageId("banana")
+        self.ctool.addOntology("banana")
+        self.assertTrue(self.portal["ontologies"].hasObject("banana"))
+        self.assertEqual(self.portal["ontologies"]["banana"],
+                         self.ctool.getStorage())
+
+    def testGetStorageCreatesOntologyIfNotExists(self):
+        """
+        If neither an ontology or a portal-level object exists with the set
+        storage id, then a new ontology is created with that id.
+        """
+        self.ctool.setStorageId("banana")
+        self.ctool.addOntology("apple")
+        self.assertFalse(self.portal["ontologies"].hasObject("banana"))
+        storage = self.ctool.getStorage()
+        self.assertTrue(self.portal["ontologies"].hasObject("banana"))
+        self.assertEqual(self.portal["ontologies"]["banana"], storage)
+
 
 def test_suite():
     from unittest import TestSuite, makeSuite

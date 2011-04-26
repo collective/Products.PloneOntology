@@ -3,6 +3,8 @@ import os, sys
 if __name__ == '__main__':
     execfile(os.path.join(sys.path[0], 'framework.py'))
 
+from Products.CMFCore.utils import getToolByName
+
 from producttest import PloneOntologyTestCase
 
 class TestProduct(PloneOntologyTestCase):
@@ -86,10 +88,9 @@ class TestProduct(PloneOntologyTestCase):
         self.failUnless('PloneOntology' in st.objectIds())
 
     def testPreserveKeywordsOnReinstall(self):
-        self.portal.portal_quickinstaller.uninstallProducts(['PloneOntology'])
+        storage = getToolByName(self.portal, "portal_classification").getStorage()
 
-        self.failUnless('kw_storage' in self.portal.objectIds())
-        storage = self.portal.kw_storage
+        self.portal.portal_quickinstaller.uninstallProducts(['PloneOntology'])
 
         for kw in self.kws:
             self.failUnless(self.obs[kw].getId() in storage.objectIds())
@@ -97,7 +98,7 @@ class TestProduct(PloneOntologyTestCase):
 
         self.portal.portal_quickinstaller.installProduct('PloneOntology')
 
-        storage = self.portal.kw_storage
+        storage = getToolByName(self.portal, "portal_classification").getStorage()
 
         for kw in self.kws:
             self.failUnless(self.obs[kw].getId() in storage.objectIds())

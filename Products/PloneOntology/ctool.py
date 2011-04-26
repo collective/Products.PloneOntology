@@ -217,7 +217,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
         self.relevance_factors = PersistentMapping()
         self._cutoff = 0.1
         self._use_gv_tool = 0
-        self._storage = 'kw_storage'
+        self._storage = 'default'
         self._classifytypes = []
         self._gvfont = ''
         self._relfont = ''
@@ -1124,26 +1124,21 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """
         self._storage = name
 
-    def getStorageId(self):return self._storage
+    def getStorageId(self):
+        return self._storage
 
     def getStorage(self):
-        """Return current keyword storage object.
+        """Return default keyword storage object.
         """
         urltool = getToolByName(self, 'portal_url')
         portal = urltool.getPortalObject()
 
-        kwstorage = getattr(portal, self.getStorageId(), None)
+        kwstorage = self.getOntology(self.getStorageId())
+        if kwstorage is None:
+            kwstorage = getattr(portal, self.getStorageId(), None)
 
         if kwstorage is None: #create
-            pt=getToolByName(self, 'portal_types')
-            pt.getTypeInfo('Ontology').global_allow=True
-            portal.invokeFactory('Ontology',
-                                 self.getStorageId(),
-                                 title='Ontology')
-
-            pt.getTypeInfo('Ontology').global_allow=False
-
-            kwstorage = getattr(portal, self.getStorageId(), None)
+            kwstorage = self.addOntology(self.getStorageId())
 
         return kwstorage
 
