@@ -13,7 +13,7 @@ except ImportError:
     # for Zope 2.7
     from Products.CMFCore.utils import transaction
 
-from owl import OWLExporter, OWLImporter
+from owl import OWLExporter
 
 myschema = Schema((LinesField('rootKeywords',
                               vocabulary='getKeywordTitlesOrNames',
@@ -300,25 +300,8 @@ class Ontology(BaseBTreeFolder):
     def importOWL(self, file):
         """Import keyword structure from OWL file 'file'.
         """
-        #XXX use subtransactions for large imports!!!
-
-        ### OWL import.
-        importer = OWLImporter(self, file)
-        importer.importProperties()
-        error_string = importer.importClasses()
-
-        # Update keyword graph images
         ct = getToolByName(self, 'portal_classification')
-        try:
-            for el in ct.getStorage().contentValues():
-                error_string = error_string + el.updateKwMap(levels=2)
-        except zExceptions.NotFound:
-                pass # ignore NotFound exception for silent operation without graphviz
+        return ct.importOWL(file, ontologyId=self.getId())
 
-        # Set root keywords
-        if not self.rootKeywords:
-                self.rootKeywords = self.getTopLevelTitlesOrNames()
-
-        return error_string
 
 registerType(Ontology, PROJECTNAME)

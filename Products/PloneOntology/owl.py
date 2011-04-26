@@ -387,27 +387,27 @@ class OWLImporter(OWLBase):
 
         return ct.addOntology(ontologyLabel, ontologyDescription)
 
-    def importClasses(self):
+    def importClasses(self, ontology=None):
         error_string = ''
         for owlClass in self._dom.getElementsByTagName('owl:Class'):
             error_string = error_string + \
-                           self.importClass(owlClass)
+                           self.importClass(owlClass, ontology=ontology)
 
         return error_string
 
-    def importClass(self, cl):
+    def importClass(self, cl, ontology=None):
         error_string = ""
         ct = getToolByName(self._context, 'portal_classification')
         kid = cl.getAttribute('rdf:ID').encode(ct.getEncoding()) or parseURIRef(cl.getAttribute('rdf:about'))['fragment'].encode(ct.getEncoding())
 
         try:
-            kw = ct.getKeyword(kid)
+            kw = ct.getKeyword(kid, ontology=ontology)
         except ValidationException, e:
             error_string += "Skipping class without name: %s" % e
             return error_string
         except NotFound:
             try:
-                kw = ct.addKeyword(kid)
+                kw = ct.addKeyword(kid, ontology=ontology)
             except ValidationException, e:
                 error_string = error_string + "Cannot create keyword '%s': %s" % (kid, e)
                 return error_string
@@ -454,10 +454,10 @@ class OWLImporter(OWLBase):
         for equivalentClass in cl.getElementsByTagName('owl:equivalentClass'):
             dst = parseURIRef(equivalentClass.getAttribute('rdf:resource'))['fragment'].encode(ct.getEncoding())
             try:
-                ct.getKeyword(dst)
+                ct.getKeyword(dst, ontology=ontology)
             except NotFound:
                 try:
-                    ct.addKeyword(dst)
+                    ct.addKeyword(dst, ontology=ontology)
                 except ValidationException, e:
                     error_string += "Cannot create keyword '%s': %s" % (dst, e)
                     continue
@@ -465,7 +465,7 @@ class OWLImporter(OWLBase):
                     error_string += "BUG: Cannot create keyword '%s': %s" % (dst, e)
                     continue
             try:
-                ct.addReference(src, dst, 'synonymOf')
+                ct.addReference(src, dst, 'synonymOf', ontology=ontology)
             except ValidationException, e:
                 error_string = error_string + "synonymOf(%s,%s): %s\n" % (src, dst, e.message)
                 continue
@@ -486,7 +486,7 @@ class OWLImporter(OWLBase):
 
             for dst in dsts:
                 try:
-                    ct.addReference(src, dst, 'childOf')
+                    ct.addReference(src, dst, 'childOf', ontology=ontology)
                 except ValidationException, e:
                     error_string = error_string + "childOf(%s,%s): %s\n" % (src, dst, e.message)
                 except NotFound:
@@ -496,10 +496,10 @@ class OWLImporter(OWLBase):
             for prop in cl.getElementsByTagName(classObjectProperty.decode(ct.getEncoding())):
                 dst = parseURIRef(prop.getAttribute('rdf:resource'))['fragment'].encode(ct.getEncoding())
                 try:
-                    ct.getKeyword(dst)
+                    ct.getKeyword(dst, ontology=ontology)
                 except NotFound:
                     try:
-                        ct.addKeyword(dst)
+                        ct.addKeyword(dst, ontology=ontology)
                     except ValidationException, e:
                         error_string = error_string + "Cannot create keyword '%s': %s" % (dst, e)
                         continue
@@ -509,7 +509,7 @@ class OWLImporter(OWLBase):
 
                 try:
                     propName = prop.tagName.encode(ct.getEncoding())
-                    ct.addReference(src, dst, propName)
+                    ct.addReference(src, dst, propName, ontology=ontology)
                 except ValidationException, e:
                     error_string = error_string + "%s(%s,%s): %s\n" % (propName, src, dst, e.message)
                 except NotFound:

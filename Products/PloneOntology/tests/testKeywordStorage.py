@@ -141,6 +141,107 @@ class TestKeywordStorage(PloneOntologyTestCase):
         accessory_nerve = self.ct.getKeyword('accessory_nerve')
         self.assertEqual(abducens_nerve.getReferences('relatedTo'), [accessory_nerve])
 
+    def testOWLImportIntoOntology(self):
+        """
+        Importing into a specific named ontology by using the Classification
+        Tool with an ontology name imports everything into the specified
+        ontology.
+        """
+        expected_keywords = [ 'abdominal_ganglion',
+                              'abducens_nerve',
+                              'abducens_nerve_nucleus',
+                              'abstract_mathematical_analysis_and_modeling',
+                              'accessory_nerve',
+                              'accessory_nerve_spinal_root_nucleus',
+                              'accessory_oculomotor_nerve_nucleus',
+                              'acetylcholin_rezeptor',
+                              'acetylcholine',
+                              'acetylcholine_muscarinic_receptor',
+                              'acetylcholine_nicotinic_receptor',
+                              'acetylcholine_receptor',
+                              'cholinergic',
+                              'computability_and_complexity',
+                              'cranial_nerve',
+                              'cranial_nerve_nucleus',
+                              'invertebrate_structure',
+                              'kernel_based_method',
+                              'mathematical_and_theoretical_issue',
+                              'muscarin',
+                              'neurotransmitter_or_modulator',
+                              'nicotine',
+                              'nonlinear_dynamics',
+                              'phase_space_analysis',
+                              'receptor',
+                              'statistical_mechanics',
+                              'Äquivalenz'
+                            ]
+        expected_relations = [ 'childOf',
+                               'parentOf',
+                               'relatedTo',
+                               'synonymOf',
+                               'ähnlichWie'
+                             ]
+        owl_file = os.path.join(os.path.dirname(__file__), 'testOntology.owl')
+        message  = self.ct.importOWL(owl_file, "test-ontology")
+
+        ### check relations.
+        rls = self.ct.relations(self.rl)
+        rls.sort()
+        self.assertEqual(rls, expected_relations)
+        # childOf
+        self.assertEqual(self.ct.getTypes   ('childOf'), ['transitive'])
+        self.assertEqual(self.ct.getInverses('childOf'), ['parentOf'])
+        self.assertEqual(self.ct.getWeight  ('childOf'), 0.5)
+        # parentOf
+        self.assertEqual(self.ct.getTypes   ('parentOf'), ['transitive'])
+        self.assertEqual(self.ct.getInverses('parentOf'), ['childOf'])
+        self.assertEqual(self.ct.getWeight  ('parentOf'), 0.5)
+        # synonymOf
+        self.assertEqual(self.ct.getTypes   ('synonymOf'), ['transitive', 'symmetric'])
+        self.assertEqual(self.ct.getInverses('synonymOf'), [])
+        self.assertEqual(self.ct.getWeight  ('synonymOf'), 1.0)
+        # relatedTo
+        self.assertEqual(self.ct.getTypes   ('relatedTo'), ['transitive', 'functional', 'inversefunctional'])
+        self.assertEqual(self.ct.getInverses('relatedTo'), [])
+        self.assertEqual(self.ct.getWeight  ('relatedTo'), 0.7)
+        # ähnlichWie
+        self.assertEqual(self.ct.getTypes   ('ähnlichWie'), ['transitive', 'symmetric'])
+        self.assertEqual(self.ct.getInverses('ähnlichWie'), [])
+        self.assertEqual(self.ct.getWeight  ('ähnlichWie'), 0.9)
+
+        ### check keywords.
+        kws = self.ct.keywords(ontology="test-ontology")
+        kws.sort()
+        self.assertEqual(kws,  expected_keywords)
+        # title, description, short additional description
+        abdominal_ganglion = self.ct.getKeyword(
+            'abdominal_ganglion', ontology="test-ontology")
+        self.assertEqual(abdominal_ganglion.title, 'Abdominal ganglion')
+        self.assertEqual(abdominal_ganglion.getKwDescription(),
+                         'The abdominal ganglion is abdominal.')
+        self.assertEqual(abdominal_ganglion.shortAdditionalDescription,
+                         'The abdominal ganglion')
+
+        ### check references.
+        # childOf inverseOf parentOf
+        invertebrate_structure = self.ct.getKeyword('invertebrate_structure',
+                                                    ontology="test-ontology")
+        self.assertEqual(abdominal_ganglion.getReferences('childOf'), [invertebrate_structure])
+        self.failUnless(abdominal_ganglion in invertebrate_structure.getReferences('parentOf'))
+        # synonymOf symmetric
+        acetylcholine_receptor = self.ct.getKeyword('acetylcholine_receptor',
+                                                    ontology="test-ontology")
+        acetylcholin_rezeptor  = self.ct.getKeyword('acetylcholin_rezeptor',
+                                                    ontology="test-ontology")
+        self.assertEqual(acetylcholine_receptor.getReferences('synonymOf'), [acetylcholin_rezeptor])
+        self.assertEqual(acetylcholin_rezeptor.getReferences ('synonymOf'), [acetylcholine_receptor])
+        # constraint message for relatedTo (functional, inversefunctional)
+        self.assertEqual(message, "relatedTo(abducens_nerve,abducens_nerve_nucleus): Too many targets (2) for 'relatedTo'.\nrelatedTo(accessory_nerve_spinal_root_nucleus,accessory_nerve): Too many sources (2) for 'relatedTo'.\n")
+        # violating references do not exist, but first ones do
+        abducens_nerve  = self.ct.getKeyword('abducens_nerve', ontology="test-ontology")
+        accessory_nerve = self.ct.getKeyword('accessory_nerve', ontology="test-ontology")
+        self.assertEqual(abducens_nerve.getReferences('relatedTo'), [accessory_nerve])
+
     def testOWLExport(self):
         """OWL export tests."""
         owl_file = os.path.join(os.path.dirname(__file__), 'testOntology.owl')

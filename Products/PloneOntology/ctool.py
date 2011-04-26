@@ -596,14 +596,15 @@ class ClassificationTool(UniqueObject, SimpleItem):
         self.changeClassifyRelationship(oldRelationship, relationship)
         self._classifyRelationship = relationship
 
-    def changeClassifyRelationship(self, oldRelationship, newRelationship):
+    def changeClassifyRelationship(self, oldRelationship,
+                                   newRelationship, ontology=None):
         """Change all existing classification references from 'oldRelationship' to 'newRelationship'.
         """
         if newRelationship == oldRelationship:
             return
 
-        for keywordName in self.keywords():
-            keyword = self.getKeyword(keywordName)
+        for keywordName in self.keywords(ontology=ontology):
+            keyword = self.getKeyword(keywordName, ontology=ontology)
             for classifiedContent in keyword.getBRefs(oldRelationship):
                 classifiedContent.deleteReference(keyword, oldRelationship)
                 classifiedContent.   addReference(keyword, newRelationship)
@@ -1060,8 +1061,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """
         ruleset = self.getRelation(name)
         return [rule.getInverseRuleset().Title() for rule in ruleset.getComponents(interfaces.IRule) if rule.getId().startswith('inverseOf_')]
-        
-    def addReference(self, src, dst, relation, ):
+
+
+    def addReference(self, src, dst, relation, ontology=None):
         """Create an Archetype reference of type 'relation' from keyword with name
         'src' to keyword with name 'dst', if non-existant.
 
@@ -1074,22 +1076,20 @@ class ClassificationTool(UniqueObject, SimpleItem):
         zLOG.LOG(PROJECTNAME, zLOG.INFO,
                  "%s(%s,%s)." % (relation, src, dst))
 
-        relations_library = getToolByName(self, 'relations_library')
+        try:
+            kw_src  = self.getKeyword(src, ontology=ontology)
+        except NotFound:
+            kw_src  = self.addKeyword(src, ontology=ontology)
 
         try:
-            kw_src  = self.getKeyword(src)
+            kw_dst  = self.getKeyword(dst, ontology=ontology)
         except NotFound:
-            kw_src  = self.addKeyword(src)
-
-        try:
-            kw_dst  = self.getKeyword(dst)
-        except NotFound:
-            kw_dst  = self.addKeyword(dst)
+            kw_dst  = self.addKeyword(dst, ontology=ontology)
 
         process(self, connect=((kw_src.UID(), kw_dst.UID(), self.getRelation(relation).getId()),))
 
 
-    def delReference(self, src, dst, relation):
+    def delReference(self, src, dst, relation, ontology=None):
         """Remove the Archetype reference of type 'relation' from keyword with
         name 'src' to keyword with name 'dst', if the reference exists.
 
@@ -1100,8 +1100,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
             ValidationException : Unreference does not validate in the relation ruleset.
         """
         try:
-            kw_src = self.getKeyword(src)
-            kw_dst = self.getKeyword(dst)
+            kw_src = self.getKeyword(src, ontology=ontology)
+            kw_dst = self.getKeyword(dst, ontology=ontology)
         except NotFound:
             return
 
@@ -1181,19 +1181,20 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
         return 0
 
-    def search(self, kwName, links="all"):
+    def search(self, kwName, links="all", ontology=None):
         """Search Content for a given keyword with name 'kwName'.
 
         By default follow all link types.
         """
 
         keywords = self.getRelatedKeywords(kwName, links=links,
-                                           cutoff = self.getSearchCutoff())
+                                           cutoff=self.getSearchCutoff(),
+                                           ontology=ontology)
 
         results = []
 
         for kw in keywords.keys():
-            obj = self.getKeyword(kw)
+            obj = self.getKeyword(kw, ontology=ontology)
             rels = obj.getBRefs(self.getClassifyRelationship()) or []
 
             res = [(keywords[kw], x) for x in rels if self.isAllowed(x)]
@@ -1229,12 +1230,13 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
         return results
 
-    def getRelatedKeywords(self, keyword, fac=1, result={}, links="all", cutoff=0.1):
+    def getRelatedKeywords(self, keyword, fac=1, result={},
+                           links="all", cutoff=0.1, ontology=None):
         """Return list of keywords, that are related to keyword with name 'keyword'.
         """
 
         try:
-            kwObj = self.getKeyword(keyword)
+            kwObj = self.getKeyword(keyword, ontology=ontology)
         except NotFound: # nonexistant keyword
             return {}
 
@@ -1374,5 +1376,39 @@ class ClassificationTool(UniqueObject, SimpleItem):
         dot.graphFooter()
 
         return dot.getValue()
+
+    def importOWL(self, file, ontologyId=None):
+        """Import keyword structure from OWL file 'file' into ontology
+        'ontology'. If 'ontology' is None, the ontology contained in the import
+        file will be used if one is specified, otherwise it will be imported
+        into the default ontology.
+        """
+        ### OWL import.
+        importer = owl.OWLImporter(self, file)
+        if ontologyId is None:
+            ontology = importer.importOntology()
+            if ontology is None:
+                ontologyId = self.getStorageId()
+                ontology = self.getStorage()
+            else:
+                ontologyId = ontology.getId()
+        else:
+            ontology = self.getOntology(ontologyId)
+            if ontology is None:
+                ontology = self.addOntology(ontologyId)
+
+        importer.importProperties()
+        error_string = importer.importClasses(ontology=ontologyId)
+
+        # Update keyword graph images
+        try:
+            for el in ontology.contentValues():
+                error_string = error_string + el.updateKwMap(levels=2)
+        except zExceptions.NotFound:
+            pass # ignore NotFound exception for silent operation without graphviz
+
+        ontology.rootKeywords = ontology.getTopLevelTitlesOrNames()
+        return error_string
+
 
 InitializeClass(ClassificationTool)
