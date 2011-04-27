@@ -51,138 +51,139 @@ def _unifyRawResults(results):
 
 ##         children = kws.values()
 
-###the following code has been taken from TTF Query from Michael C. Fletcher to find Windows Fonts for the GV output.
-###for Linux Fonts fc-list is used before we use this code
-###ToDO: include copyright notice
+### the following code has been taken from TTF Query from Michael C. Fletcher to
+### find Windows Fonts for the GV output.
+### for Linux Fonts fc-list is used before we use this code
+### ToDO: include copyright notice
 """Find system fonts (only works on Linux and Win32 at the moment)"""
 
 def win32FontDirectory( ):
-	"""Get User-specific font directory on Win32"""
-	try:
-		import _winreg
-	except ImportError:
-		return os.path.join(os.environ['WINDIR'], 'Fonts')
-	else:
-		k = _winreg.OpenKey(
-			_winreg.HKEY_CURRENT_USER,
-			r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
-		)
-		try:
-			# should check that k is valid? How?
-			return _winreg.QueryValueEx( k, "Fonts" )[0]
-		finally:
-			_winreg.CloseKey( k )
+        """Get User-specific font directory on Win32"""
+        try:
+                import _winreg
+        except ImportError:
+                return os.path.join(os.environ['WINDIR'], 'Fonts')
+        else:
+                k = _winreg.OpenKey(
+                        _winreg.HKEY_CURRENT_USER,
+                        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+                )
+                try:
+                        # should check that k is valid? How?
+                        return _winreg.QueryValueEx( k, "Fonts" )[0]
+                finally:
+                        _winreg.CloseKey( k )
 
 def win32InstalledFonts( fontDirectory = None ):
-	"""Get list of explicitly *installed* font names"""
-	import _winreg
-	if fontDirectory is None:
-		fontDirectory = win32FontDirectory()
-	k = None
-	items = {}
-	for keyName in (
-		r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
-		r"SOFTWARE\Microsoft\Windows\CurrentVersion\Fonts",
-	):
-		try:
-			k = _winreg.OpenKey(
-				_winreg.HKEY_LOCAL_MACHINE,
-				keyName
-			)
-		except OSError, err:
-			pass
-	if not k:
-		# couldn't open either WinNT or Win98 key???
-		return glob.glob( os.path.join(fontDirectory, '*.ttf'))
-	try:
-		# should check that k is valid? How?
-		for index in range( _winreg.QueryInfoKey(k)[1]):
-			key,value,_ = _winreg.EnumValue( k, index )
-			if not os.path.dirname( value ):
-				value = os.path.join( fontDirectory, value )
-			value = os.path.abspath( value ).lower()
-			if value[-4:] == '.ttf':
-				items[ value ] = 1
-		return items.keys()
-	finally:
-		_winreg.CloseKey( k )
-	
+        """Get list of explicitly *installed* font names"""
+        import _winreg
+        if fontDirectory is None:
+                fontDirectory = win32FontDirectory()
+        k = None
+        items = {}
+        for keyName in (
+                r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+                r"SOFTWARE\Microsoft\Windows\CurrentVersion\Fonts",
+        ):
+                try:
+                        k = _winreg.OpenKey(
+                                _winreg.HKEY_LOCAL_MACHINE,
+                                keyName
+                        )
+                except OSError:
+                        pass
+        if not k:
+                # couldn't open either WinNT or Win98 key???
+                return glob.glob( os.path.join(fontDirectory, '*.ttf'))
+        try:
+                # should check that k is valid? How?
+                for index in range( _winreg.QueryInfoKey(k)[1]):
+                        key,value,_ = _winreg.EnumValue( k, index )
+                        if not os.path.dirname( value ):
+                                value = os.path.join( fontDirectory, value )
+                        value = os.path.abspath( value ).lower()
+                        if value[-4:] == '.ttf':
+                                items[ value ] = 1
+                return items.keys()
+        finally:
+                _winreg.CloseKey( k )
+
 
 def linuxFontDirectories( ):
-	"""Get system font directories on Linux/Unix
-	
-	Uses /usr/sbin/chkfontpath to get the list
-	of system-font directories, note that many
-	of these will *not* be truetype font directories.
+        """Get system font directories on Linux/Unix
 
-	If /usr/sbin/chkfontpath isn't available, uses
-	returns a set of common Linux/Unix paths
-	"""
-	executable = '/usr/sbin/chkfontpath'
-	if os.path.isfile( executable ):
-		data = os.popen( executable ).readlines()
-		match = re.compile( '\d+: (.+)')
-		set = []
-		for line in data:
-			result = match.match( line )
-			if result:
-				set.append(result.group(1))
-		return set
-	else:
-		directories = [
-			# what seems to be the standard installation point
-			"/usr/X11R6/lib/X11/fonts/TTF/",
-			"/usr/share/X11/fonts/TTF/",
-			# common application, not really useful
-			"/usr/lib/openoffice/share/fonts/truetype/",
-			"/usr/lib/openoffice.org2.0/share/fonts/truetype/",
-			# documented as a good place to install new fonts...
-			"/usr/share/fonts",
-			# okay, now the OS X variants...
-			"~/Library/Fonts/",
-			"/Library/Fonts/",
-			"/Network/Library/Fonts/",
-			"/System/Library/Fonts/",
-			"System Folder:Fonts:",
-		]
-		
-		set = []
-		def add( arg, directory, files):
-			set.append( directory )
-		for directory in directories:
-			try:
-				if os.path.isdir( directory ):
-					os.path.walk(directory, add, ())
-			except (IOError, OSError, TypeError, ValueError):
-				pass
-		return set
+        Uses /usr/sbin/chkfontpath to get the list
+        of system-font directories, note that many
+        of these will *not* be truetype font directories.
+
+        If /usr/sbin/chkfontpath isn't available, uses
+        returns a set of common Linux/Unix paths
+        """
+        executable = '/usr/sbin/chkfontpath'
+        if os.path.isfile( executable ):
+                data = os.popen( executable ).readlines()
+                match = re.compile( '\d+: (.+)')
+                set = []
+                for line in data:
+                        result = match.match( line )
+                        if result:
+                                set.append(result.group(1))
+                return set
+        else:
+                directories = [
+                        # what seems to be the standard installation point
+                        "/usr/X11R6/lib/X11/fonts/TTF/",
+                        "/usr/share/X11/fonts/TTF/",
+                        # common application, not really useful
+                        "/usr/lib/openoffice/share/fonts/truetype/",
+                        "/usr/lib/openoffice.org2.0/share/fonts/truetype/",
+                        # documented as a good place to install new fonts...
+                        "/usr/share/fonts",
+                        # okay, now the OS X variants...
+                        "~/Library/Fonts/",
+                        "/Library/Fonts/",
+                        "/Network/Library/Fonts/",
+                        "/System/Library/Fonts/",
+                        "System Folder:Fonts:",
+                ]
+
+                set = []
+                def add( arg, directory, files):
+                        set.append( directory )
+                for directory in directories:
+                        try:
+                                if os.path.isdir( directory ):
+                                        os.path.walk(directory, add, ())
+                        except (IOError, OSError, TypeError, ValueError):
+                                pass
+                return set
 
 def findFonts(paths = None):
-	"""Find fonts in paths, or the system paths if not given
+        """Find fonts in paths, or the system paths if not given
 
-	XXX Doesn't current support OS-X system paths
-	"""
-	files = {}
-	if paths is None:
-		if sys.platform == 'win32':
-			fontDirectory = win32FontDirectory()
-			paths = [
-				fontDirectory,
-			]
-			# now get all installed fonts directly...
-			for f in win32InstalledFonts(fontDirectory):
-				# yes, it's inefficient, the interface
-				# for win32InstalledFonts really should be
-				# using sets, not lists
-				files[f] = 1
-		else:
-			paths = linuxFontDirectories()
-	elif isinstance( paths, (str, unicode)):
-		paths = [paths]
-	for path in paths:
-		for file in glob.glob( os.path.join(path, '*.ttf')):
-			files[os.path.abspath(file)] = 1
-	return files.keys()
+        XXX Doesn't current support OS-X system paths
+        """
+        files = {}
+        if paths is None:
+                if sys.platform == 'win32':
+                        fontDirectory = win32FontDirectory()
+                        paths = [
+                                fontDirectory,
+                        ]
+                        # now get all installed fonts directly...
+                        for f in win32InstalledFonts(fontDirectory):
+                                # yes, it's inefficient, the interface
+                                # for win32InstalledFonts really should be
+                                # using sets, not lists
+                                files[f] = 1
+                else:
+                        paths = linuxFontDirectories()
+        elif isinstance( paths, (str, unicode)):
+                paths = [paths]
+        for path in paths:
+                for file in glob.glob( os.path.join(path, '*.ttf')):
+                        files[os.path.abspath(file)] = 1
+        return files.keys()
 
 ###
 ###
@@ -223,8 +224,15 @@ class ClassificationTool(UniqueObject, SimpleItem):
         self._relfont = ''
         self._forth = '1'
         self._back = '0'
-        self._nodeshapes = ['box', 'polygon', 'ellipse', 'circle', 'point', 'egg', 'triangle', 'plaintext', 'diamond', 'trapezium', 'parallelogram', 'house', 'pentagon', 'hexagon', 'septagon', 'octagon', 'doublecircle', 'doubleoctagon', 'tripleoctagon', 'invtriangle', 'invtrapezium', 'invhouse', 'Mdiamond', 'Msquare', 'Mcircle', 'rect', 'rectangle', 'none']
-        self._edgeshapes = ['box', 'crow', 'diamond', 'dot', 'inv', 'none', 'normal', 'tee', 'vee']
+        self._nodeshapes = [
+            'box', 'polygon', 'ellipse', 'circle', 'point', 'egg', 'triangle',
+            'plaintext', 'diamond', 'trapezium', 'parallelogram', 'house',
+            'pentagon', 'hexagon', 'septagon', 'octagon', 'doublecircle',
+            'doubleoctagon', 'tripleoctagon', 'invtriangle', 'invtrapezium',
+            'invhouse', 'Mdiamond', 'Msquare', 'Mcircle', 'rect', 'rectangle',
+            'none']
+        self._edgeshapes = ['box', 'crow', 'diamond', 'dot', 'inv', 'none',
+                            'normal', 'tee', 'vee']
         self._focus_nodeshape = 'ellipse'
         self._focus_nodecolor = '#dee7ec'
         self._focus_node_font_color = '#000000'
@@ -253,6 +261,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """Return the gv edge shape list.
         """
         return self._edgeshapes
+
     def getFocusNodeShape(self):
         """Return the current gv focus_nodeshape.
         """
@@ -272,66 +281,6 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """Set the focus_nodecolor for gv output.
         """
         self._focus_nodecolor=focus_nodecolor
-
-    def getFocusNodeFontColor(self):
-        """Return the current gv focus_node_font_color.
-        """
-        return self._focus_node_font_color
-
-    def setFocusNodeFontColor(self, focus_node_font_color):
-        """Set the focus_node_font_color for gv output.
-        """
-        self._focus_node_font_color=focus_node_font_color
-
-    def getFocusNodeFontColor(self):
-        """Return the current gv focus_node_font_color.
-        """
-        return self._focus_node_font_color
-
-    def setFocusNodeFontColor(self, focus_node_font_color):
-        """Set the focus_node_font_color for gv output.
-        """
-        self._focus_node_font_color=focus_node_font_color
-
-    def getFocusNodeFontSize(self):
-        """Return the current gv focus_node_font_size.
-        """
-        return self._focus_node_font_size
-
-    def setFocusNodeFontSize(self, focus_node_font_size):
-        """Set the focus_node_font_size for gv output.
-        """
-        self._focus_node_font_size=focus_node_font_size
-
-    def getFocusNodeShape(self):
-        """Return the current gv focus_nodeshape.
-        """
-        return self._focus_nodeshape
-
-    def setFocusNodeColor(self, focus_nodeshape):
-        """Set the focus_nodeshape for gv output.
-        """
-        self._focus_nodeshape=focus_nodeshape
-
-    def getFocusNodeColor(self):
-        """Return the current gv focus_nodecolor.
-        """
-        return self._focus_nodecolor
-
-    def setFocusNodeColor(self, focus_nodecolor):
-        """Set the focus_nodecolor for gv output.
-        """
-        self._focus_nodecolor=focus_nodecolor
-
-    def getFocusNodeFontColor(self):
-        """Return the current gv focus_node_font_color.
-        """
-        return self._focus_node_font_color
-
-    def setFocusNodeFontColor(self, focus_node_font_color):
-        """Set the focus_node_font_color for gv output.
-        """
-        self._focus_node_font_color=focus_node_font_color
 
     def getFocusNodeFontColor(self):
         """Return the current gv focus_node_font_color.
@@ -383,16 +332,6 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """
         self._first_node_font_color=first_node_font_color
 
-    def getFirstNodeFontColor(self):
-        """Return the current gv first_node_font_color.
-        """
-        return self._first_node_font_color
-
-    def setFirstNodeFontColor(self, first_node_font_color):
-        """Set the first_node_font_color for gv output.
-        """
-        self._first_node_font_color=first_node_font_color
-
     def getFirstNodeFontSize(self):
         """Return the current gv first_node_font_size.
         """
@@ -433,16 +372,6 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """
         self._second_node_font_color=second_node_font_color
 
-    def getSecondNodeFontColor(self):
-        """Return the current gv second_node_font_color.
-        """
-        return self._second_node_font_color
-
-    def setSecondNodeFontColor(self, second_node_font_color):
-        """Set the second_node_font_color for gv output.
-        """
-        self._second_node_font_color=second_node_font_color
-
     def getSecondNodeFontSize(self):
         """Return the current gv second_node_font_size.
         """
@@ -472,16 +401,6 @@ class ClassificationTool(UniqueObject, SimpleItem):
         """Set the edgecolor for gv output.
         """
         self._edgecolor=edgecolor
-
-    def getEdgeFontColor(self):
-        """Return the current gv edge_font_color.
-        """
-        return self._edge_font_color
-
-    def setEdgeFontColor(self, edge_font_color):
-        """Set the edge_font_color for gv output.
-        """
-        self._edge_font_color=edge_font_color
 
     def getEdgeFontColor(self):
         """Return the current gv edge_font_color.
@@ -534,7 +453,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
         except:
          pass
         self._fontpath=path
-        
+
     def getGVFont(self):
         """Return the current gv font.
         """
@@ -556,7 +475,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
         self._relfont=font
 
     def getBack(self):
-        """Return if Back References should be used in the KeywordMap generation.
+        """
+        Return if Back References should be used in the KeywordMap generation.
         """
         return self._back
 
@@ -566,7 +486,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
         self._back=back
 
     def getForth(self):
-        """Return if Forward References should be used in the KeywordMap generation.
+        """
+        Return if Forward References should be used in the KeywordMap
+        generation.
         """
         return self._forth
 
@@ -585,12 +507,17 @@ class ClassificationTool(UniqueObject, SimpleItem):
         self._encoding = encoding
 
     def getClassifyRelationship(self):
-        """Get the name of the Archetype References relationship used for referencing keywords from classified content objects.
+        """
+        Get the name of the Archetype References relationship used for
+        referencing keywords from classified content objects.
         """
         return self._classifyRelationship
 
     def setClassifyRelationship(self, relationship):
-        """Set the name of the Archetype References relationship used for referencing keywords from classified content objects and update all existing classification references.
+        """
+        Set the name of the Archetype References relationship used for
+        referencing keywords from classified content objects and update all
+        existing classification references.
         """
         oldRelationship = self.getClassifyRelationship()
         self.changeClassifyRelationship(oldRelationship, relationship)
@@ -598,7 +525,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
     def changeClassifyRelationship(self, oldRelationship,
                                    newRelationship, ontology=None):
-        """Change all existing classification references from 'oldRelationship' to 'newRelationship'.
+        """
+        Change all existing classification references from 'oldRelationship' to
+        'newRelationship'.
         """
         if newRelationship == oldRelationship:
             return
@@ -691,7 +620,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
     def addKeyword(self, name, title="", description="",
                    shortDescription="", uid="", ontology=None):
-        """Create a keyword in the current ontology. If 'uid' is specified, the referenced keyword is registered as 'name'.
+        """
+        Create a keyword in the current ontology. If 'uid' is specified, the
+        referenced keyword is registered as 'name'.
 
         Exceptions:
             ValidationException : 'name' is not a valid XML NCName.
@@ -825,9 +756,19 @@ class ClassificationTool(UniqueObject, SimpleItem):
                     path="/".join(storage.getPhysicalPath()))]
 
     def addRelation(self, name, weight=0.0, types=[], inverses=[], uid=""):
-        """Create a keyword relation 'name' in the Plone Relations library, if non-existant.
+        """
+        Create a keyword relation 'name' in the Plone Relations library, if
+        non-existant.
 
-        'weight' is set in any case if in [0,1]. For each item in the 'types' list from {'transitive', 'symmetric', 'functional', 'inversefunctional'} an appropiate rule is created in the Relations ruleset. For each relation name in the 'inverses' list an InverseImplicator rule is created in the Relations ruleset. The inverse keyword relation is created in the Plone Relations library if non-existant. Rules for inferring types for the inverse relation are created. If 'uid' is specified, the referenced relation ruleset is registered as relation 'name'.
+        'weight' is set in any case if in [0,1]. For each item in the 'types'
+        list from {'transitive', 'symmetric', 'functional',
+        'inversefunctional'} an appropiate rule is created in the Relations
+        ruleset. For each relation name in the 'inverses' list an
+        InverseImplicator rule is created in the Relations ruleset. The inverse
+        keyword relation is created in the Plone Relations library if
+        non-existant. Rules for inferring types for the inverse relation are
+        created. If 'uid' is specified, the referenced relation ruleset is
+        registered as relation 'name'.
 
         Exceptions:
             ValidationException : 'name' is not a valid XML NCName.
@@ -867,7 +808,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
         return ruleset
 
     def getRelation(self, name):
-        """Return ruleset for keyword relation 'name' of current ontology from the Plone Relations library.
+        """
+        Return ruleset for keyword relation 'name' of current ontology from the
+        Plone Relations library.
 
         Exceptions:
             NotFound            : There is no relation 'name' in current ontology.
@@ -894,7 +837,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
             raise NotFound, "Relation '%s' not found in current ontology" % name
 
     def delRelation(self, name):
-        """Remove the keyword relation 'name' from current ontology, if it exists.
+        """
+        Remove the keyword relation 'name' from current ontology, if it exists.
         """
         relations_library = getToolByName(self, 'relations_library')
         try:
@@ -904,7 +848,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
             pass
 
     def relations(self, relations_library, plus='0'):
-        """Return a list of all existing keyword relation names in 'relations_library' and add ['noChange', 'deleteAll'] if plus != '0'
+        """
+        Return a list of all existing keyword relation names in
+        'relations_library' and add ['noChange', 'deleteAll'] if plus != '0'
         """
         rel_list=['noChange', 'deleteAll']
         if plus != '0':
@@ -940,7 +886,10 @@ class ClassificationTool(UniqueObject, SimpleItem):
     def setTypes(self, name, t):
         """Set the list of types of keyword relation 'name'.
 
-        The list is set to t, if 't' is non-empty list from {'transitive', 'symmetric', 'functional', 'inversefunctional'}. Empty list deletes all types.
+        The list is set to t, if 't' is non-empty list from {'transitive',
+        'symmetric', 'functional', 'inversefunctional'}. Empty list deletes all
+        types.
+
         Return the list of types of keyword relation 'name'.
 
         Exceptions:
@@ -964,7 +913,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
                 r.manage_delObjects('symmetric')
             except AttributeError:
                 pass
-    
+
         if 'functional' in t:
             if not hasattr(r, 'functional'):
                 r.invokeFactory('Cardinality Constraint', 'functional')
@@ -1002,14 +951,19 @@ class ClassificationTool(UniqueObject, SimpleItem):
         except AttributeError:
             pass
 
-        result.extend([rule.getId() for rule in ruleset.getComponents(interfaces.IRule) if rule.getId() in ('symmetric', 'functional', 'inversefunctional')])
+        result.extend([
+            rule.getId() for rule in ruleset.getComponents(interfaces.IRule)
+            if rule.getId() in ('symmetric', 'functional', 'inversefunctional')])
 
         return result
-        
+
     def setInverses(self, name, i):
         """Set inverse relations of keyword relation 'name'.
 
-        Inverse relations are set to relations in 'i', if 'i' is non-empty list of relation names. Empty list deletes all inverses. All relations in 'i' are created, if non-existant. Inferring types for relations in 'i' are created from the types of relation 'name'.
+        Inverse relations are set to relations in 'i', if 'i' is non-empty list
+        of relation names. Empty list deletes all inverses. All relations in
+        'i' are created, if non-existant. Inferring types for relations in 'i'
+        are created from the types of relation 'name'.
 
         Exceptions:
             NotFound : No relation ruleset 'name' in current ontology.
@@ -1022,10 +976,16 @@ class ClassificationTool(UniqueObject, SimpleItem):
         for o in obsolete:
             iruleset = self.getRelation(o)
             irules = iruleset.getComponents(interfaces.IRule)
-            irules = [rule for rule in irules if rule.getId().startswith('inverseOf')]
-            iruleset.manage_delObjects([rule.getId() for rule in irules if rule.getInverseRuleset().Title() == ruleset.Title()])
+            irules = [rule for rule in irules
+                      if rule.getId().startswith('inverseOf')]
+            iruleset.manage_delObjects([
+                rule.getId() for rule in irules
+                if rule.getInverseRuleset().Title() == ruleset.Title()])
 
-        ruleset.manage_delObjects([rule.getId() for rule in ruleset.getComponents(interfaces.IRule) if rule.getId().startswith('inverseOf_') and rule.getInverseRuleset().Title() in obsolete])
+        ruleset.manage_delObjects([
+            rule.getId() for rule in ruleset.getComponents(interfaces.IRule)
+            if rule.getId().startswith('inverseOf_') and
+            rule.getInverseRuleset().Title() in obsolete])
 
         for inverse in new:
             try:
@@ -1037,9 +997,10 @@ class ClassificationTool(UniqueObject, SimpleItem):
             inverse_ruleset = self.getRelation(inverse)
 
             types         = self.getTypes(name)
-            inverse_types = [t for t in types if t in ['transitive', 'symmetric']]      + \
-                            ['inversefunctional' for i in range('functional' in types)] + \
-                            ['functional' for i in range('inversefunctional' in types)]
+            inverse_types = (
+                [t for t in types if t in ['transitive', 'symmetric']]      +
+                ['inversefunctional' for i in range('functional' in types)] +
+                ['functional' for i in range('inversefunctional' in types)])
 
             self.setTypes(inverse, inverse_types)
 
@@ -1060,18 +1021,24 @@ class ClassificationTool(UniqueObject, SimpleItem):
             NotFound : No relation ruleset 'name' in current ontology.
         """
         ruleset = self.getRelation(name)
-        return [rule.getInverseRuleset().Title() for rule in ruleset.getComponents(interfaces.IRule) if rule.getId().startswith('inverseOf_')]
+        return [rule.getInverseRuleset().Title()
+                for rule in ruleset.getComponents(interfaces.IRule)
+                if rule.getId().startswith('inverseOf_')]
 
 
     def addReference(self, src, dst, relation, ontology=None):
-        """Create an Archetype reference of type 'relation' from keyword with name
+        """
+        Create an Archetype reference of type 'relation' from keyword with name
         'src' to keyword with name 'dst', if non-existant.
 
-        'src' and 'dst' are created, if non-existant. The reference is created through Plone Relations library, so relation-specific rulesets are honored.
+        'src' and 'dst' are created, if non-existant. The reference is created
+        through Plone Relations library, so relation-specific rulesets are
+        honored.
 
         Exceptions:
             NotFound            : No relation 'relation' in current ontology.
-            ValidationException : Reference does not validate in the relation ruleset or 'src' or 'dst' are invalid XMLNCNames
+            ValidationException : Reference does not validate in the relation
+            ruleset or 'src' or 'dst' are invalid XMLNCNames
         """
         zLOG.LOG(PROJECTNAME, zLOG.INFO,
                  "%s(%s,%s)." % (relation, src, dst))
@@ -1086,14 +1053,17 @@ class ClassificationTool(UniqueObject, SimpleItem):
         except NotFound:
             kw_dst  = self.addKeyword(dst, ontology=ontology)
 
-        process(self, connect=((kw_src.UID(), kw_dst.UID(), self.getRelation(relation).getId()),))
+        process(self, connect=((kw_src.UID(), kw_dst.UID(),
+                                self.getRelation(relation).getId()),))
 
 
     def delReference(self, src, dst, relation, ontology=None):
         """Remove the Archetype reference of type 'relation' from keyword with
         name 'src' to keyword with name 'dst', if the reference exists.
 
-        'src' and 'dst' are created, if non-existant. The reference is removed through Plone Relations library, so relation-specific rulesets are honored.
+        'src' and 'dst' are created, if non-existant. The reference is removed
+        through Plone Relations library, so relation-specific rulesets are
+        honored.
 
         Exceptions:
             NotFound            : No relation 'relation' in current ontology.
@@ -1105,10 +1075,13 @@ class ClassificationTool(UniqueObject, SimpleItem):
         except NotFound:
             return
 
-        process(self, disconnect=((kw_src.UID(), kw_dst.UID(), self.getRelation(relation).getId()),))
+        process(self, disconnect=((kw_src.UID(), kw_dst.UID(),
+                                   self.getRelation(relation).getId()),))
 
     # ZMI wrappers.
-    def manage_addKeyword(self, name, title='', shortAdditionalDescription='', description='', REQUEST=None):
+    def manage_addKeyword(self, name, title='',
+                          shortAdditionalDescription='',
+                          description='', REQUEST=None):
         """Add new keyword.
         """
         self.addKeyword(name, title, description, shortAdditionalDescription)
@@ -1232,7 +1205,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
     def getRelatedKeywords(self, keyword, fac=1, result={},
                            links="all", cutoff=0.1, ontology=None):
-        """Return list of keywords, that are related to keyword with name 'keyword'.
+        """
+        Return list of keywords, that are related to keyword with name
+        'keyword'.
         """
 
         try:
@@ -1256,7 +1231,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
                 links = [links]
 
         children = self._getDirectLinkTargets(kwObj, fac, links, cutoff)
-        result = self._getRecursiveContent(kwObj, children, result, links, cutoff)
+        result = self._getRecursiveContent(kwObj, children,
+                                           result, links, cutoff)
 
         return result
 
@@ -1265,8 +1241,9 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
         for rel in links:
             relfac = self.getWeight(rel) * fac
-            children.extend([(relfac, x)
-                             for x in (kwObj.getReferences(rel) or []) if x is not None and relfac>cutoff])
+            children.extend([
+                (relfac, x) for x in (kwObj.getReferences(rel) or [])
+                if x is not None and relfac>cutoff])
 
         return _unifyRawResults(children)
 
@@ -1279,7 +1256,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
                 recursive = self.getRelatedKeywords(cname, c[0],
                                                     result, links, cutoff)
 
-                if recursive.has_key(kwObj.getName()): #suppress direct backlinks
+                if recursive.has_key(kwObj.getName()):
+                    # suppress direct backlinks
                     del recursive[kwObj.getName()]
 
                 for kw in recursive.keys():
@@ -1312,7 +1290,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
             if item.title:
                 kws.update({item.title: item})
 
-        result = difflib.get_close_matches(search.decode(self.getEncoding()), kws.keys(), n=5, cutoff=0.5)
+        result = difflib.get_close_matches(
+            search.decode(self.getEncoding()), kws.keys(), n=5, cutoff=0.5)
         result = [kws[x] for x in result]
 
         extresult=[]
@@ -1326,7 +1305,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
          for el in kwps:
           if el.getObject().getParentNode().getId() != 'accepted_kws':
            kwpsdict.update({el.getObject().getId():el.getObject()})
-         result2 = difflib.get_close_matches(search, kwpsdict.keys(), n=5, cutoff=0.5)
+         result2 = difflib.get_close_matches(
+             search, kwpsdict.keys(), n=5, cutoff=0.5)
          result2 = [kwpsdict[x] for x in result2]
          for el in result:
           for el2 in result2:
@@ -1356,7 +1336,16 @@ class ClassificationTool(UniqueObject, SimpleItem):
 
         kws = [kw_res.getObject() for kw_res in catalog.searchResults(portal_type='Keyword')]
 
-        dot = KeywordGraph(self.getGVFont(), self.getRelFont(), self.getFocusNodeShape(), self.getFocusNodeColor(), self.getFocusNodeFontColor(), self.getFocusNodeFontSize(), self.getFirstNodeShape(), self.getFirstNodeColor(), self.getFirstNodeFontColor(), self.getFirstNodeFontSize(), self.getSecondNodeShape(), self.getSecondNodeColor(), self.getSecondNodeFontColor(), self.getSecondNodeFontSize(), self.getEdgeShape(), self.getEdgeColor(), self.getEdgeFontColor(), self.getEdgeFontSize())
+        dot = KeywordGraph(
+            self.getGVFont(), self.getRelFont(), self.getFocusNodeShape(),
+            self.getFocusNodeColor(), self.getFocusNodeFontColor(),
+            self.getFocusNodeFontSize(), self.getFirstNodeShape(),
+            self.getFirstNodeColor(), self.getFirstNodeFontColor(),
+            self.getFirstNodeFontSize(), self.getSecondNodeShape(),
+            self.getSecondNodeColor(), self.getSecondNodeFontColor(),
+            self.getSecondNodeFontSize(), self.getEdgeShape(),
+            self.getEdgeColor(), self.getEdgeFontColor(),
+            self.getEdgeFontSize())
 
         if kws:
             dot.graphHeader(kws[0])
@@ -1405,7 +1394,8 @@ class ClassificationTool(UniqueObject, SimpleItem):
             for el in ontology.contentValues():
                 error_string = error_string + el.updateKwMap(levels=2)
         except zExceptions.NotFound:
-            pass # ignore NotFound exception for silent operation without graphviz
+            # ignore NotFound exception for silent operation without graphviz
+            pass
 
         ontology.rootKeywords = ontology.getTopLevelTitlesOrNames()
         ontology.updateGraphvizMap()
