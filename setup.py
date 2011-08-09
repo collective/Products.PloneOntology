@@ -30,7 +30,7 @@ setup(name="Products.PloneOntology",
       download_url="http://plone.org/products/ploneontology",
       install_requires=[
           "setuptools",
-          "archetypes.schemaextender"
+          "archetypes.schemaextender",
           "Products.Relations",
           "Plone >= 4.0",
           ],
