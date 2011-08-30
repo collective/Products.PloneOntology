@@ -1,4 +1,3 @@
-from Globals import package_home
 from Products.CMFCore import permissions as CMFCorePermissions
 
 

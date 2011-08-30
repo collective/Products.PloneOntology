@@ -1,11 +1,8 @@
 import Products.CMFCore.utils
-from Globals import InitializeClass, PersistentMapping
-from Products.CMFCore.utils import getToolByName
+from AccessControl.class_init import InitializeClass
 from AccessControl.SecurityInfo import ClassSecurityInfo
-from config import PROJECTNAME
-import zLOG
-import popen2
 import os
+import subprocess
 import OFS.PropertyManager
 import OFS.SimpleItem
 import Products.CMFCore.ActionProviderBase
@@ -77,7 +74,9 @@ class GraphVizTool(Products.CMFCore.utils.UniqueObject,
 
         layouter = os.path.join(GV_BIN_PATH, layouter)
 
-        (pout,pin) = popen2.popen4(cmd = "%s -V" % layouter)
+        p = Popen("%s -V" % layouter, stdin=PIPE, stdout=PIPE,
+                  stderr=STDOUT, close_fds=True)
+        (pout, pin) = p.stdout, p.stdin
         pin.close()
         output = pout.read()
         pout.close()
@@ -97,7 +96,9 @@ class GraphVizTool(Products.CMFCore.utils.UniqueObject,
         options = " ".join(options)
 
         # 2006-08-03 Seperate streams for output and error. Avoids problems with fonts not found.
-        (pout, pin, perr) = popen2.popen3(cmd = "%s %s" % (tool, options), mode = "b")
+        p = Popen("%s %s" % (tool, options), shell=True,
+                  stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=True)
+        (pout, pin, perr) = p.stdout, p.stdin, p.stderr
         pin.write(graph)
         pin.close()
 
