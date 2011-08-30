@@ -1,6 +1,11 @@
 import Products.CMFCore.utils
-from AccessControl.class_init import InitializeClass
 from AccessControl.SecurityInfo import ClassSecurityInfo
+
+try:
+    from AccessControl.class_init import InitializeClass
+except ImportError:
+    from Globals import InitializeClass
+
 import os
 import subprocess
 import OFS.PropertyManager

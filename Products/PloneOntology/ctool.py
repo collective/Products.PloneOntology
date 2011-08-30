@@ -3,8 +3,12 @@ from Products.CMFPlone.utils import normalizeString
 from AccessControl.SecurityInfo import ClassSecurityInfo
 from AccessControl import getSecurityManager, Unauthorized
 from OFS.SimpleItem import SimpleItem
-from AccessControl.class_init import InitializeClass
 from Persistence import PersistentMapping
+
+try:
+    from AccessControl.class_init import InitializeClass
+except ImportError:
+    from Globals import InitializeClass
 
 from keywordgraph import KeywordGraph
 from utils import generateUniqueId
