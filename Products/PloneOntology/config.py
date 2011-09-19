@@ -18,4 +18,4 @@ DEPENDENCIES = (
 ### graphviz configuration
 
 # path to the graphviz layouter binaries (i.e. dot, neato, ...)
-GV_BIN_PATH = ''
+GV_BIN_PATH = '/usr/bin'

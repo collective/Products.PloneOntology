@@ -7,13 +7,16 @@ except ImportError:
     from Globals import InitializeClass
 
 import os
-import subprocess
+
 import OFS.PropertyManager
 import OFS.SimpleItem
 import Products.CMFCore.ActionProviderBase
 
 from warnings import warn
 from config import *
+
+from subprocess import Popen, PIPE, STDOUT
+
 
 class GraphVizTool(Products.CMFCore.utils.UniqueObject,
                    OFS.PropertyManager.PropertyManager,
@@ -78,8 +81,10 @@ class GraphVizTool(Products.CMFCore.utils.UniqueObject,
             layouter = self.getLayouter()
 
         layouter = os.path.join(GV_BIN_PATH, layouter)
+        if not (os.path.exists(layouter) and os.access(layouter, os.X_OK)):
+            return False
 
-        p = Popen("%s -V" % layouter, stdin=PIPE, stdout=PIPE,
+        p = Popen("%s -V" % layouter, shell=True, stdin=PIPE, stdout=PIPE,
                   stderr=STDOUT, close_fds=True)
         (pout, pin) = p.stdout, p.stdin
         pin.close()

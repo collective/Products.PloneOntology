@@ -1398,7 +1398,7 @@ class ClassificationTool(UniqueObject, SimpleItem):
         try:
             for el in ontology.contentValues():
                 error_string = error_string + el.updateKwMap(levels=2)
-        except zExceptions.NotFound:
+        except NotFound:
             # ignore NotFound exception for silent operation without graphviz
             pass
 

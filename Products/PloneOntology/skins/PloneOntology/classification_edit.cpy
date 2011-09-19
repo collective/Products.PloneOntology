@@ -18,6 +18,7 @@ sel_button = context.REQUEST.get('form.button.sel',None)
 sel2_button = context.REQUEST.get('form.button.sel2',None)
 sel3_button = context.REQUEST.get('form.button.sel3',None)
 add_search_button = context.REQUEST.get('form.button.add_search',None)
+rc = context.reference_catalog
 
 if add_button:
     if keywords is not None:
@@ -40,7 +41,7 @@ if add_search_button:
  else:
   storage = context.portal_classification.getStorage()
   val = context.getCategories()
-  val.append(context.archetype_tool.lookupObject(skw))
+  val.append(rc.lookupObject(skw))
   context.setCategories(val)
   return state.set(portal_status_message='content categorized with keyword %s.' % SearchKW)
 
@@ -52,7 +53,7 @@ if sel_button:
         #newUID = keyword #.UID()
         
         val = context.getCategories()
-        #k=context.archetype_tool.lookupObject(kw)
+        #k=rc.lookupObject(kw)
         #keywords.extend(k.getId())
         val.extend([kw])
         context.setCategories(val)
@@ -63,7 +64,7 @@ if sel_button:
         return state.set(portal_status_message='No keywords selected.')
 
 if sel2_button:
-        kwA = context.archetype_tool.lookupObject(keyworda)
+        kwA = rc.lookupObject(keyworda)
         if kwA.meta_type == "KeywordProposal":
             nameA = kwA.generateName(kwA.getKPTitle(), kwA.getShortAdditionalDescription())
         else:
@@ -72,7 +73,7 @@ if sel2_button:
         return state.set(portal_status_message='Selected keyword added.')
 
 if sel3_button:
-        kwB = context.archetype_tool.lookupObject(keywordb)
+        kwB = rc.lookupObject(keywordb)
         if kwB.meta_type == "KeywordProposal":
             nameB = kwB.generateName(kwB.getKPTitle(), kwB.getShortAdditionalDescription())
         else:
