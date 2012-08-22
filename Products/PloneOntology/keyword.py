@@ -89,10 +89,19 @@ class PredictiveTitleToNameValidator:
     def __call__(self, value, *args, **kwargs):
         instance = kwargs.get('instance')
         ctool = getToolByName(instance, 'portal_classification')
+
+
         # The reference to getShortAdditionalDescription is unclean as it may
         # (and likely is) not have been updated yet. I haven't seen it used at
         # all in our scenarios, though.
-        name = generateName(value, instance.getShortAdditionalDescription())
+        #name = generateName(value, instance.getShortAdditionalDescription())
+
+        # XXX Re: above ^^^. Unclean, and error-producing:
+        #   Module Products.PloneOntology.keyword, line 95, in __call__
+        #   AttributeError: getShortAdditionalDescription 
+        # What is this for? Will an empty string do?
+        name = generateName(value, '')
+
         used = ctool.isUsedName(value)
         if used and used != instance:
             return "A keyword with the name '%s' already exists." % value
