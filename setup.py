@@ -6,7 +6,7 @@ from os.path import join
 
 name = "Products.PloneOntology"
 path = name.split(".") + ["version.txt"]
-version = open(join(*path)).read().strip()
+version = "1.0.0"
 
 setup(name="Products.PloneOntology",
       version=version,

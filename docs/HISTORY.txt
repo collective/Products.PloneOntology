@@ -1,5 +1,13 @@
 
-2008-10-28  Douglas Soares de Andrade  <douglas@archlinux.org>
-    
-    * Removed the  characters
+Changelog
+=========
 
+1.0.0 (2012-09-07)
+------------------
+
+* Initial release [aclark4life]
+
+2008-10-28
+----------
+    
+* Removed the CTRL-M characters [Douglas Soares de Andrade  <douglas@archlinux.org>]
